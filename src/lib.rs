@@ -2,23 +2,45 @@ use btleplug::api::{CharPropFlags, Characteristic};
 use btleplug::api::{bleuuid::uuid_from_u16, Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::platform::{Adapter, Manager, Peripheral};
 use std::error::Error;
+use core::any::TypeId;
 use std::thread;
 use futures::stream::StreamExt;
 use std::time::Duration;
-use tokio::time;
-use uuid::Uuid;
+use tokio::time; use uuid::Uuid;
 
+//TODO: This macro will cause a runtime error if the UUID is not passed in as a &str
 #[macro_export]
 macro_rules! gp_uuid {
-    ($x:expr) => {{
-        // We use the `format!` macro to insert the provided digits into the UUID string.
+    ($x:literal) => {{
+        //GoPro's global 128 bit UUID with the missing 16 bits filled in from the 16 bit UUID
         let s = format!("b5f9{}-aa8d-11e3-9046-0002a5d5c51b", $x);
-        // Now we parse the string into a `Uuid` using the `parse_str` function from the `uuid` crate.
-        // If parsing fails, the macro will panic at compile time.
         Uuid::parse_str(&s).expect("Invalid UUID")
     }};
 }
 
+enum GoProCommand {
+    ShutterStart,
+    ShutterStop,
+    Sleep,
+    AddHilightDuringEncoding,
+    VideoMode,
+    PhotoMode,
+    TimelapseMode,
+}
+
+impl GoProCommand {
+    fn as_bytes(&self) -> &'static [u8] {
+        match self {
+            GoProCommand::ShutterStart => &[0x03, 0x01, 0x01, 0x01],
+            GoProCommand::ShutterStop => &[0x03, 0x01, 0x01, 0x00],
+            GoProCommand::Sleep => &[0x01, 0x05],
+            GoProCommand::AddHilightDuringEncoding => &[0x01, 0x18],
+            GoProCommand::VideoMode => &[0x04, 0x3E, 0x02, 0x03, 0xE8],
+            GoProCommand::PhotoMode => &[0x04, 0x3E, 0x02, 0x03, 0xE9],
+            GoProCommand::TimelapseMode => &[0x04, 0x3E, 0x02, 0x03, 0xEA],
+        }
+    }
+}
 
 //const LIGHT_CHARACTERISTIC_UUID: Uuid = uuid_from_u16(0xFFE9);
 const GOPRO_SERVICE_UUID: Uuid = uuid_from_u16(0xFEA6);
@@ -108,13 +130,13 @@ pub async fn connect(device_local_name: String) -> Result<(), Box<dyn Error>> {
     let command_write_char = characteristics.iter().find(|c| c.uuid == gp_uuid!("0072")).unwrap();
 
     println!("Writin' records");
-    device.write(&command_write_char, &[0x03, 0x01, 0x01, 0x01], WriteType::WithoutResponse).await?;
+    device.write(&command_write_char, GoProCommand::ShutterStart.as_bytes(), WriteType::WithoutResponse).await?;
 
     println!("Sleepin' 5");
     time::sleep(Duration::from_secs(5)).await;
 
     println!("Writin' Stop records");
-    device.write(&command_write_char, &[0x03, 0x01, 0x01, 0x00], WriteType::WithoutResponse).await?;
+    device.write(&command_write_char, GoProCommand::ShutterStop.as_bytes(), WriteType::WithoutResponse).await?;
 
     let mut response_stream = device.notifications().await?;
 
@@ -162,7 +184,7 @@ pub async fn disconnect(device_local_name: String) -> Result<(), Box<dyn Error>>
     let command_write_char = characteristics.iter().find(|c| c.uuid == gp_uuid!("0072")).unwrap();
 
     println!("Writin' sleeps");
-    device.write(&command_write_char, &[0x01, 0x05], WriteType::WithoutResponse).await?;
+    device.write(&command_write_char, GoProCommand::Sleep.as_bytes(), WriteType::WithoutResponse).await?;
 
     // disconnect to the device
     device.disconnect().await?;
