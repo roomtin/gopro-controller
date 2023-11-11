@@ -5,7 +5,6 @@ edition = "2021"
 authors = ["roomtin <roomtin@pm.me>"]
 readme = "README.md"
 license-file = "LICENSE"
-license = "MIT"
 description = "Open source Rust Library for interacting with GoPro Cameras over BLE and WiFi"
 categories = ["api-bindings", "multimedia", "embedded"]
 keywords = ["gopro", "camera", "bluetooth", "hero"]
