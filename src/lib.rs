@@ -1,104 +1,141 @@
-use btleplug::api::{CharPropFlags, Characteristic};
-use btleplug::api::{bleuuid::uuid_from_u16, Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
+use crate::gopro_spec::{
+    GoProCommand, GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
+};
+use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
+use btleplug::api::{CharPropFlags, ValueNotification};
 use btleplug::platform::{Adapter, Manager, Peripheral};
-use std::error::Error;
-use core::any::TypeId;
-use std::thread;
 use futures::stream::StreamExt;
-use std::time::Duration;
-use tokio::time; use uuid::Uuid;
+use std::error::Error;
+mod gopro_spec;
 
-//TODO: This macro will cause a runtime error if the UUID is not passed in as a &str
-#[macro_export]
-macro_rules! gp_uuid {
-    ($x:literal) => {{
-        //GoPro's global 128 bit UUID with the missing 16 bits filled in from the 16 bit UUID
-        let s = format!("b5f9{}-aa8d-11e3-9046-0002a5d5c51b", $x);
-        Uuid::parse_str(&s).expect("Invalid UUID")
-    }};
+///Represents a connected GoPro device
+pub struct GoPro {
+    device: Peripheral,
 }
 
-enum GoProCommand {
-    ShutterStart,
-    ShutterStop,
-    Sleep,
-    AddHilightDuringEncoding,
-    VideoMode,
-    PhotoMode,
-    TimelapseMode,
-}
+impl GoPro {
+    ///Sends a command to the GoPro without checking for a response
+    pub async fn send_command_unchecked<C>(&self, command: C) -> Result<(), Box<dyn Error>>
+    where
+        C: AsRef<GoProCommand> + Sendable,
+    {
+        let characteristics = self.device.characteristics();
 
-impl GoProCommand {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self {
-            GoProCommand::ShutterStart => &[0x03, 0x01, 0x01, 0x01],
-            GoProCommand::ShutterStop => &[0x03, 0x01, 0x01, 0x00],
-            GoProCommand::Sleep => &[0x01, 0x05],
-            GoProCommand::AddHilightDuringEncoding => &[0x01, 0x18],
-            GoProCommand::VideoMode => &[0x04, 0x3E, 0x02, 0x03, 0xE8],
-            GoProCommand::PhotoMode => &[0x04, 0x3E, 0x02, 0x03, 0xE9],
-            GoProCommand::TimelapseMode => &[0x04, 0x3E, 0x02, 0x03, 0xEA],
+        let command_write_char = characteristics
+            .iter()
+            .find(|c| c.uuid == GPCharac::Command.to_uuid())
+            .unwrap();
+
+        self.device
+            .write(
+                &command_write_char,
+                command.as_bytes(),
+                WriteType::WithoutResponse,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    ///Sends a command to the GoPro and checks for a response, erroring if the response is incorrect
+    pub async fn send_command<C>(&self, command: C) -> Result<(), Box<dyn Error>>
+    where
+        C: AsRef<GoProCommand> + Sendable,
+    {
+        self.send_command_unchecked(&command).await?;
+        let res = self.get_next_notification().await?;
+        if res.is_none() {
+            return Err("No response from GoPro".into());
         }
+        let res = res.unwrap();
+        if res.uuid != GPCharac::CommandResponse.to_uuid() {
+            return Err("Response from GoPro came from incorrect UUID".into());
+        }
+        if res.value != command.response_value_bytes() {
+            return Err("Response from GoPro was incorrect".into());
+        }
+        Ok(())
+    }
+
+    ///Gets the next notification (response from a command) from the GoPro
+    pub async fn get_next_notification(&self) -> Result<Option<ValueNotification>, Box<dyn Error>> {
+        let mut response_stream = self.device.notifications().await?;
+        let notification = response_stream.next().await;
+        Ok(notification)
+    }
+
+    ///Disconnects the GoPro
+    pub async fn disconnect(self) -> Result<(), Box<dyn Error>> {
+        self.device.disconnect().await?;
+        Ok(())
+    }
+
+    ///Disconnects the GoPro and powers it off
+    pub async fn disconnect_and_poweroff(self) -> Result<(), Box<dyn Error>> {
+        self.send_command(GoProCommand::Sleep).await?;
+        self.device.disconnect().await?;
+        Ok(())
     }
 }
 
-//const LIGHT_CHARACTERISTIC_UUID: Uuid = uuid_from_u16(0xFFE9);
-const GOPRO_SERVICE_UUID: Uuid = uuid_from_u16(0xFEA6);
-
-pub async fn scan() -> Result<Vec<String>, Box<dyn Error>> {
+///Inits the bluetooth adapter (central) and returns it to the caller
+///
+///@param adapter_index is an optional index into the list of bluetooth adapters in case the caller has more than one.
+pub async fn init(adapter_index: Option<usize>) -> Result<Adapter, Box<dyn Error>> {
     let manager = Manager::new().await.unwrap();
 
+    //manage multiple adapters ?
+    let index = adapter_index.unwrap_or(0);
     // get the first bluetooth adapter
-    //manage multiple adapters ? 
     let adapters = manager.adapters().await?;
-    let central = adapters.into_iter().nth(0).unwrap();
 
+    if adapters.len() <= 0 {
+        return Err("No Bluetooth Adapters".into());
+    }
+
+    let central = adapters.into_iter().nth(index).unwrap();
+    Ok(central)
+}
+
+///Scans for GoPro devices and returns a list of their names
+///(may also return previously connected devices some of which may not be GoPros)
+///
+///@param central is the bluetooth adapter to use for scanning
+pub async fn scan(central: &mut Adapter) -> Result<Vec<String>, Box<dyn Error>> {
     // start scanning for devices
-
-    //TODO: Use the scan filter to narrow down the devices that might be GoPros ?
-
     let scan_filter = ScanFilter {
-       services: vec![GOPRO_SERVICE_UUID] 
+        services: vec![GoProServices::ControlAndQuery.to_uuid()],
     };
 
     central.start_scan(scan_filter).await?;
-    // instead of waiting, you can use central.events() to get a stream which will
-    // notify you of new devices, for an example of that see examples/event_driven_discovery.rs
-    time::sleep(Duration::from_secs(2)).await;
 
     let mut devices_names: Vec<String> = Vec::with_capacity(central.peripherals().await?.len());
 
     for p in central.peripherals().await? {
         let properties = p.properties().await?;
-        let name = properties.unwrap().local_name.unwrap_or("Unknown".to_string());
+        let name = properties
+            .unwrap()
+            .local_name
+            .unwrap_or("Unknown".to_string());
         devices_names.push(name);
     }
     Ok(devices_names)
-
 }
 
-//connect
-pub async fn connect(device_local_name: String) -> Result<(), Box<dyn Error>> {
-    let manager = Manager::new().await.unwrap();
-
-    // get the first bluetooth adapter
-    //manage multiple adapters ? 
-    let adapters = manager.adapters().await?;
-    let central = adapters.into_iter().nth(0).unwrap();
-
-    // start scanning for devices
-    let scan_filter = ScanFilter {
-       services: vec![GOPRO_SERVICE_UUID] 
-    };
-
-    central.start_scan(scan_filter).await?;
-
-    let device = filter_peripherals(central.peripherals().await?, device_local_name).await?;
-
+///
+///Connects to a GoPro device by name and returns a GoPro object if successful
+///
+///@param gopro_local_name is the name of the GoPro device to connect to
+///
+///@param central is the bluetooth adapter to use for connecting
+pub async fn connect(
+    gopro_local_name: String,
+    central: &mut Adapter,
+) -> Result<GoPro, Box<dyn Error>> {
+    let device = filter_peripherals(central.peripherals().await?, gopro_local_name).await?;
     if device.is_none() {
-        return Err("Device not found".into());
+        return Err("GoPro not found".into());
     }
-
     let device = device.unwrap();
 
     // connect to the device
@@ -110,117 +147,104 @@ pub async fn connect(device_local_name: String) -> Result<(), Box<dyn Error>> {
     //subscribe to the proper notify characteristics
     let characteristics = device.characteristics();
 
-    println!("{:#?}", characteristics);
-
     if characteristics.len() == 0 {
-        return Err("No characteristics found on this device".into());
+        return Err("No characteristics found on this GoPro".into());
     }
 
     //Subscribe to all the characteristics that have the notify property
-    //TODO: Send off subscriptions concurently
+    //TODO: Send off subscriptions concurently ?
     for c in &characteristics {
         if c.properties.bits() == CharPropFlags::NOTIFY.bits() {
             device.subscribe(&c).await?;
         }
     }
 
-    println!("Sleepin' 5");
-    time::sleep(Duration::from_secs(5)).await;
-
-    let command_write_char = characteristics.iter().find(|c| c.uuid == gp_uuid!("0072")).unwrap();
-
-    println!("Writin' records");
-    device.write(&command_write_char, GoProCommand::ShutterStart.as_bytes(), WriteType::WithoutResponse).await?;
-
-    println!("Sleepin' 5");
-    time::sleep(Duration::from_secs(5)).await;
-
-    println!("Writin' Stop records");
-    device.write(&command_write_char, GoProCommand::ShutterStop.as_bytes(), WriteType::WithoutResponse).await?;
-
-    let mut response_stream = device.notifications().await?;
-
-    println!("Listening for notifications...");
-    while let Some(notification) = response_stream.next().await {
-        println!("Received notification: {:?}", notification);
-    }
-
-
-    //subscribe to command write characteristics
-
-
-    Ok(())
+    Ok(GoPro { device })
 }
 
-//disconnect
-pub async fn disconnect(device_local_name: String) -> Result<(), Box<dyn Error>> {
-    let manager = Manager::new().await.unwrap();
-
-    // get the first bluetooth adapter
-    //manage multiple adapters ? 
-    let adapters = manager.adapters().await?;
-    let central = adapters.into_iter().nth(0).unwrap();
-
-    // start scanning for devices
-    let scan_filter = ScanFilter {
-       services: vec![GOPRO_SERVICE_UUID] 
-    };
-
-    central.start_scan(scan_filter).await?;
-
-    let device = filter_peripherals(central.peripherals().await?, device_local_name).await?;
-
-    if device.is_none() {
-        return Err("Device not found".into());
-    }
-
-    let device = device.unwrap();
-
-    //discover all the services on the device
-    device.discover_services().await?;
-
-    let characteristics = device.characteristics();
-
-    let command_write_char = characteristics.iter().find(|c| c.uuid == gp_uuid!("0072")).unwrap();
-
-    println!("Writin' sleeps");
-    device.write(&command_write_char, GoProCommand::Sleep.as_bytes(), WriteType::WithoutResponse).await?;
-
-    // disconnect to the device
-    device.disconnect().await?;
-
-    Ok(())
-}
-
-async fn filter_peripherals(peripherals: Vec<Peripheral>, device_name: String) -> Result<Option<Peripheral>, Box<dyn Error>> {
+///Filters a list of peripherals by name and returns the first one that matches
+async fn filter_peripherals(
+    peripherals: Vec<Peripheral>,
+    device_name: String,
+) -> Result<Option<Peripheral>, Box<dyn Error>> {
     for p in peripherals {
         let properties = p.properties().await?;
-        let name = properties.unwrap().local_name.unwrap_or("Unknown".to_string());
+        let name = properties
+            .unwrap()
+            .local_name
+            .unwrap_or("Unknown".to_string());
         if name.eq(&device_name) {
-            return Ok(Some(p))
+            return Ok(Some(p));
         }
     }
     Ok(None)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
+    use tokio::time;
 
     #[tokio::test]
-    async fn test_scan() {
-        println!("{:?}",scan().await.unwrap());
+    async fn test_whole_lifecycle() {
+        let mut central = init(None).await.unwrap();
+        let mut devices = scan(&mut central).await.unwrap();
+        devices.retain(|d| d.contains("GoPro"));
+        assert!(devices.len() > 0, "No GoPro devices found");
+
+        let gopro = connect(devices.first().unwrap().clone(), &mut central)
+            .await
+            .unwrap();
+
+        println!("Connected to GoPro");
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Starting Shutter");
+        gopro
+            .send_command(GoProCommand::ShutterStart)
+            .await
+            .unwrap();
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Adding HiLight");
+        gopro
+            .send_command(GoProCommand::AddHilightDuringEncoding)
+            .await
+            .unwrap();
+
+        time::sleep(Duration::from_secs(3)).await;
+        println!("Stopping Shutter");
+        gopro.send_command(GoProCommand::ShutterStop).await.unwrap();
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Switching to Photo Mode");
+        gopro.send_command(GoProCommand::PhotoMode).await.unwrap();
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Switching to Timelapse Mode");
+        gopro
+            .send_command(GoProCommand::TimelapseMode)
+            .await
+            .unwrap();
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Disconnecting from GoPro");
+        gopro.disconnect_and_poweroff().await.unwrap();
     }
 
-
     #[tokio::test]
-    async fn test_connect() {
-        connect("GoPro 8323".to_string()).await.unwrap()
-    }
+    #[ignore]
+    async fn reset_testing() {
+        let mut central = init(None).await.unwrap();
+        let mut devices = scan(&mut central).await.unwrap();
+        devices.retain(|d| d.contains("GoPro"));
+        assert!(devices.len() > 0, "No GoPro devices found");
 
-    #[tokio::test]
-    async fn test_disconnect() {
-        disconnect("GoPro 8323".to_string()).await.unwrap()
+        let gopro = connect(devices.first().unwrap().clone(), &mut central)
+            .await
+            .unwrap();
+
+        gopro.disconnect_and_poweroff().await.unwrap();
     }
 }
