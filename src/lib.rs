@@ -1,12 +1,16 @@
-use crate::gopro_spec::{
-    GoProCommand, GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
+mod services;
+mod command;
+
+use crate::services::{
+    GoProControlAndQueryCharacteristics as GPCharac, GoProServices, ToUUID, Sendable
 };
+
+use crate::command::GoProCommand;
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::api::{CharPropFlags, ValueNotification};
 use btleplug::platform::{Adapter, Manager, Peripheral};
 use futures::stream::StreamExt;
 use std::error::Error;
-mod gopro_spec;
 
 ///Represents a connected GoPro device
 pub struct GoPro {
