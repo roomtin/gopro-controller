@@ -36,7 +36,7 @@ I don't own any other models to test with so for now all I can verify for is the
   - [x] WirelessBand,
   - [x] TrailLength,
   - [x] VideoMode,
-- [] Query Camera Status:
+- [ ] Query Camera Status:
   - [ ] None Completed.
 - [ ] Download media from camera
 - [ ] Live preview
