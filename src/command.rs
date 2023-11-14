@@ -33,10 +33,7 @@ use GoProCommand as GPC; //alias for conciseness
 ///
 ///NOTE: The byte arrays in this implementation were taken directly from the GoPro Open Spec:
 ///<https://gopro.github.io/OpenGoPro/ble_2_0#commands-quick-reference>
-impl<T> Sendable for T
-where
-    T: AsRef<GoProCommand>,
-{
+impl Sendable for GPC {
     fn as_bytes(&self) -> &'static [u8] {
         match self.as_ref() {
             GPC::ShutterStart => &[0x03, 0x01, 0x01, 0x01],

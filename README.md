@@ -7,18 +7,42 @@ https://gopro.github.io/OpenGoPro/
 ## Supported Cameras
 - GoPro Hero 11 Black
 
-I don't have any other ones to test with, but for the time being, I believe everything implemented should work with all cameras that support the OpenGoPro protocol.
+I don't own any other models to test with so for now all I can verify for is the Hero 11 Black. The command structure looks the same for all cameras so it should work with any camera that supports the OpenGoPro spec, however the settings vary between cameras so I can't gurantee that any particular setting will work with a different model. 
 
 ## Features -- WIP
 - [x] Connect* to GoPro Camera
-- [x] Start and Stop Recording
-- [x] Switch to different recording modes
-- [x] Add a HiLight while recording
-- [x] Power off camera
-- [ ] Change any of the cameras settings
+- [x] Commands:
+  - [x] Shutter Start
+  - [x] Shutter Stop
+  - [x] Power Off
+  - [x] Add HiLight
+  - [x] Change Modes
+- [x] Settings:
+  - [x] Resolution
+  - [x] FPS
+  - [x] AutoPowerDown
+  - [x] VideoDigitalLense 
+  - [x] PhotoDigitalLense,
+  - [x] TimeLapseDigitalLense,
+  - [x] MediaFormat,
+  - [x] AntiFlicker,
+  - [x] Hypersmooth,
+  - [x] HorizonLeveling,
+  - [x] MaxLense,
+  - [x] Hindsight,
+  - [x] Controls,
+  - [x] Speed,
+  - [x] NightPhoto,
+  - [x] WirelessBand,
+  - [x] TrailLength,
+  - [x] VideoMode,
+- [] Query Camera Status:
+  - [ ] None Completed.
 - [ ] Download media from camera
 - [ ] Live preview
 - [ ] WiFi support
+- [ ] More Camera Models
+- [ ] Protobuf support
 
 *Note: At the moment the library cannot pair the camera for the first time. You must pair the camera with your system by putting the camera in pairing mode (Preferences -> Wireless Connections -> Connect Device -> GoPro Quik App) and connecting in your system's bluetooth settings. Once the camera is paired, you can connect to it from this library without pairing mode.
 

@@ -1,10 +1,10 @@
 mod services;
 mod command;
-
+mod settings;
 use crate::services::{
     GoProControlAndQueryCharacteristics as GPCharac, GoProServices, ToUUID, Sendable
 };
-
+use crate::settings::GoProSetting;
 use crate::command::GoProCommand;
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::api::{CharPropFlags, ValueNotification};
@@ -19,10 +19,7 @@ pub struct GoPro {
 
 impl GoPro {
     ///Sends a command to the GoPro without checking for a response
-    pub async fn send_command_unchecked<C>(&self, command: C) -> Result<(), Box<dyn Error>>
-    where
-        C: AsRef<GoProCommand> + Sendable,
-    {
+    pub async fn send_command_unchecked(&self, command: &GoProCommand) -> Result<(), Box<dyn Error>> {
         let characteristics = self.device.characteristics();
 
         let command_write_char = characteristics
@@ -42,11 +39,8 @@ impl GoPro {
     }
 
     ///Sends a command to the GoPro and checks for a response, erroring if the response is incorrect
-    pub async fn send_command<C>(&self, command: C) -> Result<(), Box<dyn Error>>
-    where
-        C: AsRef<GoProCommand> + Sendable,
-    {
-        self.send_command_unchecked(&command).await?;
+    pub async fn send_command(&self, command: &GoProCommand) -> Result<(), Box<dyn Error>> {
+        self.send_command_unchecked(command).await?;
         let res = self.get_next_notification().await?;
         if res.is_none() {
             return Err("No response from GoPro".into());
@@ -56,6 +50,43 @@ impl GoPro {
             return Err("Response from GoPro came from incorrect UUID".into());
         }
         if res.value != command.response_value_bytes() {
+            return Err("Response from GoPro was incorrect".into());
+        }
+        Ok(())
+    }
+
+    ///Sends a setting to the GoPro without checking for a response
+    pub async fn send_setting_unchecked(&self, setting: &GoProSetting) -> Result<(), Box<dyn Error>> {
+        let characteristics = self.device.characteristics();
+
+        let settings_write_char = characteristics
+            .iter()
+            .find(|c| c.uuid == GPCharac::Settings.to_uuid())
+            .unwrap();
+
+        self.device
+            .write(
+                &settings_write_char,
+                setting.as_bytes(),
+                WriteType::WithoutResponse,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    ///Sends a setting to the GoPro and checks for a response, erroring if the response is incorrect
+    pub async fn send_setting(&self, setting: &GoProSetting) -> Result<(), Box<dyn Error>> {
+        self.send_setting_unchecked(setting).await?;
+        let res = self.get_next_notification().await?;
+        if res.is_none() {
+            return Err("No response from GoPro".into());
+        }
+        let res = res.unwrap();
+        if res.uuid != GPCharac::SettingsResponse.to_uuid() {
+            return Err("Response from GoPro came from incorrect UUID".into());
+        }
+        if res.value != setting.response_value_bytes() {
             return Err("Response from GoPro was incorrect".into());
         }
         Ok(())
@@ -76,7 +107,7 @@ impl GoPro {
 
     ///Disconnects the GoPro and powers it off
     pub async fn disconnect_and_poweroff(self) -> Result<(), Box<dyn Error>> {
-        self.send_command(GoProCommand::Sleep).await?;
+        self.send_command(GoProCommand::Sleep.as_ref()).await?;
         self.device.disconnect().await?;
         Ok(())
     }
@@ -189,6 +220,8 @@ mod tests {
     use super::*;
     use std::time::Duration;
     use tokio::time;
+    
+    use crate::settings::*;
 
     #[tokio::test]
     async fn test_whole_lifecycle() {
@@ -206,34 +239,66 @@ mod tests {
         time::sleep(Duration::from_secs(4)).await;
         println!("Starting Shutter");
         gopro
-            .send_command(GoProCommand::ShutterStart)
+            .send_command(GoProCommand::ShutterStart.as_ref())
             .await
             .unwrap();
 
         time::sleep(Duration::from_secs(4)).await;
         println!("Adding HiLight");
         gopro
-            .send_command(GoProCommand::AddHilightDuringEncoding)
+            .send_command(GoProCommand::AddHilightDuringEncoding.as_ref())
             .await
             .unwrap();
 
         time::sleep(Duration::from_secs(3)).await;
         println!("Stopping Shutter");
-        gopro.send_command(GoProCommand::ShutterStop).await.unwrap();
+        gopro.send_command(GoProCommand::ShutterStop.as_ref()).await.unwrap();
 
         time::sleep(Duration::from_secs(4)).await;
         println!("Switching to Photo Mode");
-        gopro.send_command(GoProCommand::PhotoMode).await.unwrap();
+        gopro.send_command(GoProCommand::PhotoMode.as_ref()).await.unwrap();
 
         time::sleep(Duration::from_secs(4)).await;
         println!("Switching to Timelapse Mode");
         gopro
-            .send_command(GoProCommand::TimelapseMode)
+            .send_command(GoProCommand::TimelapseMode.as_ref())
             .await
             .unwrap();
 
         time::sleep(Duration::from_secs(4)).await;
         println!("Disconnecting from GoPro");
+        gopro.disconnect_and_poweroff().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_some_settings() {
+        let mut central = init(None).await.unwrap();
+        let mut devices = scan(&mut central).await.unwrap();
+        devices.retain(|d| d.contains("GoPro"));
+        assert!(devices.len() > 0, "No GoPro devices found");
+
+        let gopro = connect(devices.first().unwrap().clone(), &mut central)
+            .await
+            .unwrap();
+
+        println!("Connected to GoPro");
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Setting Video Lense to Linear + Horizon Lock");
+        gopro
+            .send_setting(GoProSetting::VideoDigitalLense(Hero11VideoDigitalLense::LinearHorizonLock).as_ref())
+            .await
+            .unwrap();
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Setting Video Lense back to Hyperview");
+        gopro
+            .send_setting(GoProSetting::VideoDigitalLense(Hero11VideoDigitalLense::Hyperview).as_ref())
+            .await
+            .unwrap();
+
+        time::sleep(Duration::from_secs(4)).await;
+        println!("Powering off");
         gopro.disconnect_and_poweroff().await.unwrap();
     }
 
