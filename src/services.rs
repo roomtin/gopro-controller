@@ -29,9 +29,9 @@ pub trait Sendable {
 
 ///Represents the different services that a GoPro device can have
 pub enum GoProServices {
-    #[allow(dead_code)]
+    #[cfg(feature = "wifi")]
     GoProWiFiAp,
-    #[allow(dead_code)]
+    #[cfg(feature = "wifi")]
     GoProCamManagement,
     ControlAndQuery,
 }
@@ -39,7 +39,9 @@ pub enum GoProServices {
 impl ToUUID for GoProServices {
     fn to_uuid(&self) -> Uuid {
         match self {
+            #[cfg(feature = "wifi")]
             GoProServices::GoProWiFiAp => gp_uuid!("0001"),
+            #[cfg(feature = "wifi")]
             GoProServices::GoProCamManagement => gp_uuid!("0090"),
             GoProServices::ControlAndQuery => gp_uuid!("FEA6"),
         }
@@ -49,7 +51,7 @@ impl ToUUID for GoProServices {
 ///FOR FUTURE USE
 ///
 ///Represents the different characteristics that the GoProWiFiAp service has
-#[allow(dead_code)]
+#[cfg(feature = "wifi")]
 pub enum GoProWifiApCharacteristics {
     SSID,
     Password,
@@ -57,7 +59,10 @@ pub enum GoProWifiApCharacteristics {
     State,
 }
 
+#[cfg(feature = "wifi")]
 use GoProWifiApCharacteristics as GPWAC; //alias for conciseness
+
+#[cfg(feature = "wifi")]
 impl ToUUID for GoProWifiApCharacteristics {
     fn to_uuid(&self) -> Uuid {
         match self {
@@ -72,13 +77,15 @@ impl ToUUID for GoProWifiApCharacteristics {
 ///FOR FUTURE USE
 ///
 ///Represents the different characteristics that the GoProCamManagement service has
-#[allow(dead_code)]
+#[cfg(feature = "wifi")]
 pub enum GoProManagementCharacteristics {
     NetworkManagementCommand,
     NetworkManagementResponse,
 }
 
+#[cfg(feature = "wifi")]
 use GoProManagementCharacteristics as GPMC; //alias for conciseness
+#[cfg(feature = "wifi")]
 impl ToUUID for GoProManagementCharacteristics {
     fn to_uuid(&self) -> Uuid {
         match self {

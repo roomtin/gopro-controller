@@ -23,8 +23,6 @@ impl AsRef<GoProQuery> for GoProQuery {
     }
 }
 
-use std::vec;
-
 use GoProQuery as GPC;
 impl GoProQuery {
     /// Returns a byte array that can be sent to a GoPro Query characteristic

@@ -1,6 +1,6 @@
 [package]
 name = "gopro-controller"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2021"
 authors = ["roomtin <roomtin@pm.me>"]
 readme = "README.md"
@@ -9,10 +9,6 @@ description = "Open source Rust Library for interacting with GoPro Cameras over 
 categories = ["api-bindings", "multimedia", "embedded"]
 keywords = ["gopro", "camera", "bluetooth", "hero"]
 
-[features]
-default = ["query"]
-query = []
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -20,3 +16,8 @@ btleplug = "0.11.1"
 futures = "0.3.29"
 tokio = { version = "1.33.0", features = ["full"] }
 uuid = "1.5.0"
+
+[features]
+default = ["query"]
+query = []
+wifi = ["query"]
