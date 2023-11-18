@@ -5,13 +5,13 @@ mod services;
 mod settings;
 #[cfg(test)]
 mod tests;
-use crate::command::GoProCommand;
+pub use crate::command::GoProCommand;
 #[cfg(feature = "query")]
-use crate::query::{GoProQuery, QueryResponse};
-use crate::services::{
+pub use crate::query::{GoProQuery, QueryResponse};
+pub use crate::services::{
     GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
 };
-use crate::settings::GoProSetting;
+pub use crate::settings::GoProSetting;
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::api::{CharPropFlags, ValueNotification};
 use btleplug::platform::{Adapter, Manager, Peripheral};
