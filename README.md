@@ -2,7 +2,7 @@
 Open source Rust Library for interacting with GoPro Cameras over BLE and (maybe eventually) WiFi
 
 ## Motivation
-GoPros are neat little devices but the only good way of interacting with them is through their mobile app which isn't extensible. This crate hopes to provide a starting point for programatically controling the camera wirelessly and eventually downloading media from it from more DIY friendly computers such as Raspberry Pis and other SBCs, microcontrollers etc.
+GoPros are neat little devices but the only good way of interacting with them is through their mobile app which isn't extensible. This crate hopes to provide a starting point for programatically controling the cameras wirelessly and eventually downloading media from them with more DIY friendly computers such as Raspberry Pis and other SBCs, microcontrollers etc.
 
 ## GoPro Specification
 https://gopro.github.io/OpenGoPro/
