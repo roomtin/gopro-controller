@@ -92,13 +92,9 @@ impl ToUUID for GoProManagementCharacteristics {
 pub enum GoProControlAndQueryCharacteristics {
     Command,
     CommandResponse,
-    #[allow(dead_code)]
     Settings,
-    #[allow(dead_code)]
     SettingsResponse,
-    #[allow(dead_code)]
     Query,
-    #[allow(dead_code)]
     QueryResponse,
 }
 

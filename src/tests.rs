@@ -1,0 +1,138 @@
+use super::*;
+use std::time::Duration;
+use tokio::time;
+use crate::settings::*;
+
+#[cfg(feature = "query")]
+use crate::query::*;
+
+#[tokio::test]
+async fn test_whole_lifecycle() {
+    let mut central = init(None).await.unwrap();
+    let mut devices = scan(&mut central).await.unwrap();
+    devices.retain(|d| d.contains("GoPro"));
+    assert!(devices.len() > 0, "No GoPro devices found");
+
+    let gopro = connect(devices.first().unwrap().clone(), &mut central)
+        .await
+        .unwrap();
+
+    println!("Connected to GoPro");
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Starting Shutter");
+    gopro
+        .send_command(GoProCommand::ShutterStart.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Adding HiLight");
+    gopro
+        .send_command(GoProCommand::AddHilightDuringEncoding.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(3)).await;
+    println!("Stopping Shutter");
+    gopro
+        .send_command(GoProCommand::ShutterStop.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Switching to Photo Mode");
+    gopro
+        .send_command(GoProCommand::PhotoMode.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Switching to Timelapse Mode");
+    gopro
+        .send_command(GoProCommand::TimelapseMode.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Disconnecting from GoPro");
+    gopro.disconnect_and_poweroff().await.unwrap();
+}
+
+#[cfg(feature = "query")]
+#[tokio::test]
+async fn test_queryies() {
+    let mut central = init(None).await.unwrap();
+    let mut devices = scan(&mut central).await.unwrap();
+    devices.retain(|d| d.contains("GoPro"));
+    assert!(devices.len() > 0, "No GoPro devices found");
+
+    let gopro = connect(devices.first().unwrap().clone(), &mut central)
+        .await
+        .unwrap();
+
+    println!("Connected to GoPro");
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying Battery Percentage");
+    let response = gopro
+        .query(&GoProQuery::GetStatusValue(vec![
+            StatusID::InternalBatteryPercentage,
+        ]))
+        .await
+        .unwrap();
+    println!("Reponse: {:?}", response);
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Powering off");
+    gopro.disconnect_and_poweroff().await.unwrap();
+}
+
+#[tokio::test]
+async fn test_some_settings() {
+    let mut central = init(None).await.unwrap();
+    let mut devices = scan(&mut central).await.unwrap();
+    devices.retain(|d| d.contains("GoPro"));
+    assert!(devices.len() > 0, "No GoPro devices found");
+
+    let gopro = connect(devices.first().unwrap().clone(), &mut central)
+        .await
+        .unwrap();
+
+    println!("Connected to GoPro");
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Setting Video Lense to Linear + Horizon Lock");
+    gopro
+        .send_setting(
+            GoProSetting::VideoDigitalLense(Hero11VideoDigitalLense::LinearHorizonLock).as_ref(),
+        )
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Setting Video Lense back to Hyperview");
+    gopro
+        .send_setting(GoProSetting::VideoDigitalLense(Hero11VideoDigitalLense::Hyperview).as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Powering off");
+    gopro.disconnect_and_poweroff().await.unwrap();
+}
+
+#[tokio::test]
+//#[ignore]
+async fn reset_testing() {
+    let mut central = init(None).await.unwrap();
+    let mut devices = scan(&mut central).await.unwrap();
+    devices.retain(|d| d.contains("GoPro"));
+    assert!(devices.len() > 0, "No GoPro devices found");
+
+    let gopro = connect(devices.first().unwrap().clone(), &mut central)
+        .await
+        .unwrap();
+
+    gopro.disconnect_and_poweroff().await.unwrap();
+}
