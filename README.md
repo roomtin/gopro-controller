@@ -1,11 +1,19 @@
 # gopro-controller
-Open source Rust Library for interacting with GoPro Cameras over BLE and (maybe eventually) WiFi
+Open source Rust Library for interacting with GoPro Cameras over BLE and (eventually) WiFi
 
 ## Motivation
-GoPros are neat little devices but the only good way of interacting with them is through their mobile app which isn't extensible. This crate hopes to provide a starting point for programatically controling the cameras wirelessly and eventually downloading media from them with more DIY friendly computers such as Raspberry Pis and other SBCs, microcontrollers etc.
+GoPros are neat little devices but the only good way of interacting with them is through their mobile app which isn't extensible. This crate hopes to provide a starting point for programatically controling the cameras wirelessly, and eventually downloading media from them, with DIY friendly computers such as Raspberry Pis and other SBCs, microcontrollers etc. There are, I think, a number of use cases for controling GoPros with sensors and other devices which are not supported by the official app. 
 
-## GoPro Specification
-https://gopro.github.io/OpenGoPro/
+## Collaboration
+### Code
+I am open to collaboration on this crate. Feel free to make a PR open an issue if you have any ideas/suggestions. If you intend to make contributions at a pace where being added as a collaborator would be more convenient, please reach out to me via email:  roomtin@pm.me
+
+### Testing other Models
+Such nifty devices aren't inexpensive and so verifing that features that are expected to work on other models do in fact work could be a challenge. If you'd like to test any of the library features on a non Hero 11 Black model and make an issue with the results, this would be quite helpful. (Currently only the Commands are expected to work on non Hero 11 Black models.)
+
+**Note however** that at the time of writing the open gopro spec supports only the following models: Hero 9 Black, Hero 10 Black, Hero 11 Black, Hero 11 Black Mini, Hero 12 Black 
+
+## [GoPro Specification](https://gopro.github.io/OpenGoPro/)
 
 ## Supported Cameras
 - GoPro Hero 11 Black
@@ -20,6 +28,7 @@ I don't own any other models to test with so for now all I can verify for is the
   - [x] Power Off
   - [x] Add HiLight
   - [x] Change Modes
+  - [ ] Complex Commands
 - [x] Settings:
   - [x] Resolution
   - [x] FPS
@@ -40,11 +49,12 @@ I don't own any other models to test with so for now all I can verify for is the
   - [x] TrailLength,
   - [x] VideoMode,
 - [x] Query Camera Status And Settings:
-  - [x] There are a bunch. See here: https://gopro.github.io/OpenGoPro/ble_2_0#status-ids
+  - [x] There are a bunch. See [here](https://gopro.github.io/OpenGoPro/ble_2_0#status-ids).
 - [ ] Interpret Camera Status in a human friendly way
+- [ ] WiFi support
 - [ ] Download media from camera
 - [ ] Live preview
-- [ ] WiFi support
+- [ ] #no_std support for embedded devices like esp32
 - [ ] More Camera Models
 - [ ] Protobuf support
 

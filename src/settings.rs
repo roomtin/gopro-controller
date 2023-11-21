@@ -1,4 +1,108 @@
 use crate::services::Sendable;
+
+/// Implements the Sendable trait for a given enum where there is
+/// only one kind of response value
+/// 
+/// # Arguments
+/// * `$enum` - The enum to implement the trait for
+/// * `$response` - The response bytes for the enum
+/// * `$($variant:path => $bytes:expr),*` - The bytes for each variant
+/// 
+/// # Usage
+/// ```
+///sendable_impl!(
+///    Hero11Resolution,
+///    &[0x02, 0x02, 0x00],
+///    Hero11Resolution::Res4K => &[0x03, 0x02, 0x01, 0x01],
+///    Hero11Resolution::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
+///    Hero11Resolution::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
+///    Hero11Resolution::Res1080 => &[0x03, 0x02, 0x01, 0x09],
+///    Hero11Resolution::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
+///    Hero11Resolution::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
+///    Hero11Resolution::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
+///    Hero11Resolution::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
+///    Hero11Resolution::Res5_3K => &[0x03, 0x02, 0x01, 0x64]
+///);
+///```
+/// ### Which expands into
+///```
+///impl std::convert::AsRef<Hero11Resolution> for Hero11Resolution {
+///    fn as_ref(&self) -> &Hero11Resolution {
+///        self
+///    }
+///}
+///
+///impl Sendable for Hero11Resolution {
+///    fn as_bytes(&self) -> &'static [u8] {
+///        match self.as_ref() {
+///            Hero11Resolution::Res4K => &[0x03, 0x02, 0x01, 0x01],
+///            Hero11Resolution::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
+///            Hero11Resolution::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
+///            Hero11Resolution::Res1080 => &[0x03, 0x02, 0x01, 0x09],
+///            Hero11Resolution::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
+///            Hero11Resolution::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
+///            Hero11Resolution::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
+///            Hero11Resolution::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
+///            Hero11Resolution::Res5_3K => &[0x03, 0x02, 0x01, 0x64],
+///        }
+///    }
+///
+///    fn response_value_bytes(&self) -> &'static [u8] {
+///        &[0x02, 0x02, 0x00]
+///    }
+///}
+#[cfg(feature = "experimental")]
+macro_rules! sendable_impl {
+    ($enum:ty, $response:expr, $($variant:path => $bytes:expr),*) => {
+        impl std::convert::AsRef<$enum> for $enum {
+            fn as_ref(&self) -> &$enum {
+                self
+            }
+        }
+
+        impl Sendable for $enum {
+            fn as_bytes(&self) -> &'static [u8] {
+                match self.as_ref() {
+                    $( $variant => $bytes, )*
+                }
+            }
+
+            fn response_value_bytes(&self) -> &'static [u8] {
+                $response
+            }
+        }
+    };
+}
+
+/// Implements the Sendable trait for a given enum where there is 
+/// more than one kind of response value
+#[cfg(feature = "experimental")]
+macro_rules! sendable_impl_complex {
+    ($enum:ty, $($variant:path => $bytes:expr, $response:expr),*) => {
+        impl std::convert::AsRef<$enum> for $enum {
+            fn as_ref(&self) -> &$enum {
+                self
+            }
+        }
+
+        impl Sendable for $enum {
+            fn as_bytes(&self) -> &'static [u8] {
+                match self.as_ref() {
+                    $( $variant => $bytes, )*
+                }
+            }
+
+            fn response_value_bytes(&self) -> &'static [u8] {
+                match self.as_ref() {
+                    $( $variant => $response, )*
+                }
+            }
+        }
+    };
+}
+
+
+
 ///Represents a setting that can be changed on a GoPro device
 ///
 /// ### NOTE ###
@@ -95,13 +199,31 @@ pub enum Hero11Resolution {
     Res5_3K,
 }
 
+sendable_impl!(
+    Hero11Resolution,
+    &[0x02, 0x02, 0x00],
+    Hero11Resolution::Res4K => &[0x03, 0x02, 0x01, 0x01],
+    Hero11Resolution::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
+    Hero11Resolution::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
+    Hero11Resolution::Res1080 => &[0x03, 0x02, 0x01, 0x09],
+    Hero11Resolution::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
+    Hero11Resolution::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
+    Hero11Resolution::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
+    Hero11Resolution::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
+    Hero11Resolution::Res5_3K => &[0x03, 0x02, 0x01, 0x64]
+);
+
+
+#[cfg(not(feature = "experimental"))]
 impl AsRef<Hero11Resolution> for Hero11Resolution {
     fn as_ref(&self) -> &Hero11Resolution {
         self
     }
 }
 
+#[cfg(not(feature = "experimental"))]
 use Hero11Resolution as H11R; //alias for conciseness
+#[cfg(not(feature = "experimental"))]
 impl Sendable for H11R {
     fn as_bytes(&self) -> &'static [u8] {
         match self.as_ref() {
@@ -134,12 +256,29 @@ pub enum Hero11FPS {
     Fps200,
 }
 
+#[cfg(feature = "experimental")]
+sendable_impl!(
+    Hero11FPS,
+    &[0x02, 0x03, 0x00],
+    Hero11FPS::Fps240 => &[0x03, 0x03, 0x01, 0x00],
+    Hero11FPS::Fps120 => &[0x03, 0x03, 0x01, 0x01],
+    Hero11FPS::Fps100 => &[0x03, 0x03, 0x01, 0x02],
+    Hero11FPS::Fps60 => &[0x03, 0x03, 0x01, 0x05],
+    Hero11FPS::Fps50 => &[0x03, 0x03, 0x01, 0x06],
+    Hero11FPS::Fps30 => &[0x03, 0x03, 0x01, 0x08],
+    Hero11FPS::Fps25 => &[0x03, 0x03, 0x01, 0x09],
+    Hero11FPS::Fps24 => &[0x03, 0x03, 0x01, 0x0A],
+    Hero11FPS::Fps200 => &[0x03, 0x03, 0x01, 0x0D]
+);
+
+#[cfg(not(feature = "experimental"))]
 impl AsRef<Hero11FPS> for Hero11FPS {
     fn as_ref(&self) -> &Hero11FPS {
         self
     }
 }
 
+#[cfg(not(feature = "experimental"))]
 impl Sendable for Hero11FPS {
     fn as_bytes(&self) -> &'static [u8] {
         match self.as_ref() {

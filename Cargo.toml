@@ -10,6 +10,9 @@ categories = ["api-bindings", "multimedia", "embedded"]
 keywords = ["gopro", "camera", "bluetooth", "hero"]
 repository = "https://github.com/roomtin/gopro-controller"
 
+#REMOVE DEFAULT FEATURES
+no-publish = true
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -19,6 +22,8 @@ tokio = { version = "1.33.0", features = ["full"] }
 uuid = "1.5.0"
 
 [features]
-default = ["query"]
+default = ["query", "settings", "experimental"]
+settings = []
 query = []
 wifi = ["query"]
+experimental = []
