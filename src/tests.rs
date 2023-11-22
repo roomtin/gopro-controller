@@ -1,7 +1,7 @@
 use super::*;
+use crate::settings::*;
 use std::time::Duration;
 use tokio::time;
-use crate::settings::*;
 
 #[cfg(feature = "query")]
 use crate::query::*;

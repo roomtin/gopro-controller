@@ -12,25 +12,25 @@ pub enum GoProQuery {
     UnregisterSettingValueUpdates(Vec<StatusID>),
     UnregisterStatusValueUpdates(Vec<StatusID>),
     UnregisterAvailableOptionSettings(Vec<StatusID>),
-    /// ## TODO: 
+    /// ## TODO:
     /// This variant seems to not work like the rest of the queries
     /// and definitely shouldn't return the bytes that it does
-    /// right now. 
+    /// right now.
     /// # Don't use.
     AsyncNotificationSettingChanged,
-    /// ## TODO: 
+    /// ## TODO:
     /// This variant seems to not work like the rest of the queries
     /// and definitely shouldn't return the bytes that it does
-    /// right now. 
+    /// right now.
     /// # Don't use.
     AsyncNotificationStatusChanged,
-    /// ## TODO: 
+    /// ## TODO:
     /// This variant seems to not work like the rest of the queries
     /// and definitely shouldn't return the bytes that it does
-    /// right now. 
+    /// right now.
     /// # Don't use.
     AsyncNotificationOptionSettingChanged,
-}   
+}
 
 impl AsRef<GoProQuery> for GoProQuery {
     fn as_ref(&self) -> &GoProQuery {
@@ -41,9 +41,9 @@ impl AsRef<GoProQuery> for GoProQuery {
 use GoProQuery as GPC;
 impl GoProQuery {
     /// Returns a byte array that can be sent to a GoPro Query characteristic
-    /// 
+    ///
     /// # Note:
-    /// 
+    ///
     /// The byte arrays in this implementation were taken directly from the GoPro Open Spec:
     /// <https://gopro.github.io/OpenGoPro/ble_2_0#query-commands>
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -103,9 +103,9 @@ fn query_builder(query_id: u8, status_ids: Vec<StatusID>) -> Vec<u8> {
 }
 
 /// Camera Status Identifiers
-/// 
+///
 /// # Note:
-/// 
+///
 /// The integers in this implementation were taken directly from the GoPro Open Spec:
 /// <https://gopro.github.io/OpenGoPro/ble_2_0#status-ids>
 #[derive(Clone, Copy)]
@@ -459,7 +459,7 @@ impl TryFrom<u8> for StatusID {
             115 => Ok(StatusID::UsbConnected),
             116 => Ok(StatusID::AllowControlOverUsb),
             117 => Ok(StatusID::TotalSDSpaceKB),
-            _ => Err("Invalid StatusID") 
+            _ => Err("Invalid StatusID"),
         }
     }
 }
@@ -479,7 +479,7 @@ pub struct QueryResponse {
 }
 
 /// Represents the different ways that a query response can be interpreted
-enum QueryResponseIntepretation {
+pub enum QueryResponseIntepretation {
     /// The response was a single byte
     Byte(u8),
 
@@ -492,8 +492,8 @@ enum QueryResponseIntepretation {
     String(String),
 }
 
-use StatusID as S;
 use QueryResponseIntepretation as QRI;
+use StatusID as S;
 impl QueryResponse {
     pub fn deserialize(data: &[u8]) -> Result<Self, &'static str> {
         if data.len() < 5 {
@@ -542,278 +542,112 @@ impl QueryResponse {
 
     /// If the caller is only interested in the status value, this function
     /// will return it in a format that is easier to work with
-    fn interperet(&self) -> Option<QueryResponseIntepretation> {
-        todo!("This needs to be fixed to work with things that should be byte vecs");
+    ///
+    /// # Todo: Clean up function by grouping return types with `|` operator
+    fn interpret(&self) -> Option<QueryResponseIntepretation> {
         let status_id = StatusID::try_from(self.status_id);
         if let Err(_) = status_id {
             return None;
         }
         let status_id = status_id.unwrap();
         let interpretation = match status_id {
-            S::InternalBatteryPresent => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::InternalBatteryLevel => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::SystemHot => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::SystemBusy => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::QuickCaptureActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::EncodingActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::LCDLockActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
+            //Group Bool Like Responses
+            S::InternalBatteryPresent
+            | S::SystemHot
+            | S::SystemBusy
+            | S::QuickCaptureActive
+            | S::EncodingActive
+            | S::LCDLockActive
+            | S::WirelessConnectionsEnabled
+            | S::RemoteControlConnected
+            | S::PreviewStreamEnabled
+            | S::DownloadCancelRequestPending
+            | S::CameraLocateActive
+            | S::PreviewStreamSupported
+            | S::GpsStatus
+            | S::ApState
+            | S::DigitalZoomActive
+            | S::MobileFriendlyVideo
+            | S::FirstTimeUse
+            | S::Band5ghzAvailable
+            | S::SystemReady
+            | S::BattOkayForOta
+            | S::VideoLowTempAlert
+            | S::ZoomWhileEncoding
+            | S::CaptureDelayActive
+            | S::LinuxCoreActive
+            | S::VideoHindsightCaptureActive
+            | S::ScheduledEnabled
+            | S::SdRatingCheckError
+            | S::TurboTransfer
+            | S::UsbConnected
+            | S::AllowControlOverUsb => QRI::Bool(self.status_value[0] == 1),
+
+            // Group Byte Like Responses
+            S::InternalBatteryLevel
+            | S::PairingState
+            | S::LastPairingType
+            | S::WiFiScanState
+            | S::WiFiProvisionStatus
+            | S::SdStatus
+            | S::OtaStatus
+            | S::ExposureSelectType
+            | S::AccMicStatus
+            | S::WirelessBand
+            | S::ActualOrientation
+            | S::MediaModMicStatus
+            | S::TimewarpSpeedRampActive
+            | S::CameraLensType
+            | S::MediaModStatus
+            | S::CameraControlStatus => QRI::Byte(self.status_value[0]),
+
+            // Group ByteVec Like Responses
+
             //TODO: Interpret this further, perhaps as a struct
-            S::VideoProgressCounter => {
-                QRI::ByteVec(self.status_value.to_vec())
-            }
-            S::WirelessConnectionsEnabled => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::PairingState => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::LastPairingType => {
-                QRI::Byte(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as a struct
-            S::PairTime => {
-                QRI::ByteVec(self.status_value.to_vec())
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::WiFiScanState => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::WiFiScanTimeMsec => {
-                QRI::Byte(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::WiFiProvisionStatus => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::RemoteControlVersion => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::RemoteControlConnected => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::WirelessPairingState => {
-                QRI::Byte(self.status_value[0])
-            }
+            S::VideoProgressCounter
+            | S::PairTime
+            | S::WiFiScanTimeMsec
+            | S::RemoteControlVersion
+            | S::WirelessPairingState
+            | S::AppCount
+            | S::RemainingPhotos
+            | S::RemainingVideoTime
+            | S::NumGroupPhotos
+            | S::NumGroupVideos
+            | S::NumTotalPhotos
+            | S::NumTotalVideos
+            | S::MultiShotCountDown
+            | S::RemainingSpace
+            | S::WiFiBars
+            | S::NumHilights
+            | S::LastHilightTimeMsec
+            | S::NextPollMsec
+            | S::RemainingTimelapseTime
+            | S::CurrentMode
+            | S::ActiveVideoPresets
+            | S::ActivePhotoPresets
+            | S::ActiveTimelapsePresets
+            | S::ActivePresetsGroup
+            | S::ActivePreset
+            | S::PresetModified
+            | S::RemainingLiveBursts
+            | S::NumTotalLiveBursts
+            | S::ScheduledPreset
+            | S::SdWriteSpeedError
+            | S::TotalSDSpaceKB => QRI::ByteVec(self.status_value.to_vec()),
+
+            //Group String Like Responses
+
             //TODO: TEST THIS TO MAKE SURE THE STRING IS UTF-8
-            S::WlanSSID => {
+            S::WlanSSID | S::ApSSID => {
                 QRI::String(String::from_utf8(self.status_value.to_vec()).unwrap())
             }
-            //TODO: TEST THIS TO MAKE SURE THE STRING IS UTF-8
-            S::ApSSID => {
-                QRI::String(String::from_utf8(self.status_value.to_vec()).unwrap())
-            }
-            S::AppCount => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::PreviewStreamEnabled => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::SdStatus => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::RemainingPhotos => {
-                QRI::Byte(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as a struct
-            S::RemainingVideoTime => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NumGroupPhotos => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NumGroupVideos => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NumTotalPhotos => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NumTotalVideos => {
-                QRI::Byte(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as a struct
-            S::OtaStatus => {
-                QRI::Byte(self.status_value[0])
-            }            
-            S::DownloadCancelRequestPending => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::CameraLocateActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::MultiShotCountDown => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::RemainingSpace => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::PreviewStreamSupported => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::WiFiBars => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NumHilights => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::LastHilightTimeMsec => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NextPollMsec => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::RemainingTimelapseTime => {
-                QRI::Byte(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::ExposureSelectType => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ExposureSelectX => {
-                QRI::Percentage(self.status_value[0])
-            }
-            S::ExposureSelectY => {
-                QRI::Percentage(self.status_value[0])
-            }
-            S::GpsStatus => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::ApState => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::InternalBatteryPercentage => {
-                QRI::Percentage(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::AccMicStatus => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::DigitalZoom => {
-                QRI::Percentage(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::WirelessBand => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::DigitalZoomActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::MobileFriendlyVideo => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::FirstTimeUse => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::Band5ghzAvailable => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::SystemReady => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::BattOkayForOta => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::VideoLowTempAlert => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::ActualOrientation => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ZoomWhileEncoding => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::CurrentMode => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ActiveVideoPresets => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ActivePhotoPresets => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ActiveTimelapsePresets => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ActivePresetsGroup => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ActivePreset => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::PresetModified => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::RemainingLiveBursts => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::NumTotalLiveBursts => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::CaptureDelayActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::MediaModMicStatus => {
-                QRI::Byte(self.status_value[0])
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::TimewarpSpeedRampActive => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::LinuxCoreActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::CameraLensType => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::VideoHindsightCaptureActive => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::ScheduledPreset => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::ScheduledEnabled => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::MediaModStatus => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::SdRatingCheckError => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::SdWriteSpeedError => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::TurboTransfer => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            //TODO: Interpret this further, perhaps as an enum
-            S::CameraControlStatus => {
-                QRI::Byte(self.status_value[0])
-            }
-            S::UsbConnected | S::AllowControlOverUsb => {
-                QRI::Bool(self.status_value[0] == 1)
-            }
-            S::TotalSDSpaceKB => {
-                QRI::Byte(self.status_value[0])
-            }
+
+            //Group Percentage Like Responses
+            S::ExposureSelectX
+            | S::ExposureSelectY
+            | S::InternalBatteryPercentage
+            | S::DigitalZoom => QRI::Percentage(self.status_value[0]),
         };
         Some(interpretation)
     }
