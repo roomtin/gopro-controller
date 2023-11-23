@@ -2,6 +2,7 @@ mod command;
 #[cfg(feature = "query")]
 mod query;
 mod services;
+#[cfg(feature = "settings")]
 mod settings;
 #[cfg(test)]
 mod tests;
@@ -11,6 +12,7 @@ pub use crate::query::{GoProQuery, QueryResponse, QueryResponseIntepretation};
 pub use crate::services::{
     GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
 };
+#[cfg(feature = "settings")]
 pub use crate::settings::GoProSetting;
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::api::{CharPropFlags, ValueNotification};
@@ -70,6 +72,7 @@ impl GoPro {
         Ok(())
     }
 
+    #[cfg(feature = "settings")]
     ///Sends a setting to the GoPro without checking for a response
     ///
     /// # Arguments
@@ -96,6 +99,7 @@ impl GoPro {
         Ok(())
     }
 
+    #[cfg(feature = "settings")]
     ///Sends a setting to the GoPro and checks for a response, erroring if the response is incorrect
     ///
     /// # Arguments
@@ -151,8 +155,8 @@ impl GoPro {
     }
 
     #[cfg(feature = "query")]
-    /// Sends a query to the GoPro and returns the response as an interpreted value 
-    /// in an enum 
+    /// Sends a query to the GoPro and returns the response as an interpreted value
+    /// in an enum
     ///
     /// # Note
     /// The function will return Ok(None) if the response isn't interpretable
@@ -160,7 +164,10 @@ impl GoPro {
     ///
     /// # Arguments
     /// * `query` - The query to send to the GoPro
-    pub async fn interpreted_query(&self, query: &GoProQuery) -> Result<Option<QueryResponseIntepretation>, Box<dyn Error>> {
+    pub async fn interpreted_query(
+        &self,
+        query: &GoProQuery,
+    ) -> Result<Option<QueryResponseIntepretation>, Box<dyn Error>> {
         let characteristics = self.device.characteristics();
 
         let query_write_char = characteristics

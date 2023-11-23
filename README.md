@@ -59,8 +59,8 @@ I don't own any other models to test with so for now all I can verify for is the
     - [ ] Interpret complex camera statuses (byte arrays)
 - [ ] Conect to camera's WiFi AP
 - [ ] Download media from camera
-- [ ] Control over wifi
-- [ ] Live preview
+- [ ] Control over WiFi
+- [ ] Stream Live preview over WiFi
 - [ ] #no\_std support for embedded devices like esp32
 - [ ] More Camera Models (Particularly the Hero Black 12 since it's what's new)
 - [ ] Protobuf support

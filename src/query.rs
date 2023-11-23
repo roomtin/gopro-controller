@@ -488,6 +488,7 @@ pub enum QueryResponseIntepretation {
     /// Like a byte, but the value is 0..=100
     Percentage(u8),
 
+    /// Soon to be replaced with another enum of more specific types
     ByteVec(Vec<u8>),
     /// The response was a single byte
     String(String),
@@ -616,11 +617,10 @@ impl QueryResponse {
             | S::CameraControlStatus => QRI::Byte(self.status_value[0]),
 
             // Group ByteVec Like Responses
-            //TODO: Interpret this further, perhaps as a struct
             S::VideoProgressCounter
-            | S::PairTime 
-            | S::WiFiScanTimeMsec 
-            | S::RemoteControlVersion 
+            | S::PairTime
+            | S::WiFiScanTimeMsec
+            | S::RemoteControlVersion
             | S::WirelessPairingState
             | S::AppCount
             | S::RemainingPhotos
@@ -650,8 +650,6 @@ impl QueryResponse {
             | S::TotalSDSpaceKB => QRI::ByteVec(self.status_value.to_vec()),
 
             //Group String Like Responses
-
-            //TODO: TEST THIS TO MAKE SURE THE STRING IS UTF-8
             S::WlanSSID | S::ApSSID => {
                 QRI::String(String::from_utf8(self.status_value.to_vec()).unwrap())
             }

@@ -1,6 +1,6 @@
 [package]
 name = "gopro-controller"
-version = "0.10.2"
+version = "0.10.5"
 edition = "2021"
 authors = ["roomtin <roomtin@pm.me>"]
 readme = "README.md"
@@ -10,8 +10,8 @@ categories = ["api-bindings", "multimedia", "embedded"]
 keywords = ["gopro", "camera", "bluetooth", "hero"]
 repository = "https://github.com/roomtin/gopro-controller"
 
-#REMOVE DEFAULT FEATURES
-no-publish = true
+#Reminder to flag features
+#no-publish = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,7 +22,7 @@ tokio = { version = "1.33.0", features = ["full"] }
 uuid = "1.5.0"
 
 [features]
-default = ["query", "settings"]
+default = ["settings"]
 settings = []
 query = []
 wifi = ["query"]
