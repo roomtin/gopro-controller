@@ -2,15 +2,17 @@ mod command;
 #[cfg(feature = "query")]
 mod query;
 mod services;
+#[cfg(feature = "settings")]
 mod settings;
 #[cfg(test)]
 mod tests;
 pub use crate::command::GoProCommand;
 #[cfg(feature = "query")]
-pub use crate::query::{GoProQuery, QueryResponse};
+pub use crate::query::{GoProQuery, QueryResponse, QueryResponseIntepretation};
 pub use crate::services::{
     GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
 };
+#[cfg(feature = "settings")]
 pub use crate::settings::GoProSetting;
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::api::{CharPropFlags, ValueNotification};
@@ -25,7 +27,7 @@ pub struct GoPro {
 
 impl GoPro {
     ///Sends a command to the GoPro without checking for a response
-    /// 
+    ///
     /// # Arguments
     /// * `command` - The command to send to the GoPro
     pub async fn send_command_unchecked(
@@ -51,7 +53,7 @@ impl GoPro {
     }
 
     ///Sends a command to the GoPro and checks for a response, erroring if the response is incorrect
-    /// 
+    ///
     /// # Arguments
     /// * `command` - The command to send to the GoPro
     pub async fn send_command(&self, command: &GoProCommand) -> Result<(), Box<dyn Error>> {
@@ -70,8 +72,9 @@ impl GoPro {
         Ok(())
     }
 
+    #[cfg(feature = "settings")]
     ///Sends a setting to the GoPro without checking for a response
-    /// 
+    ///
     /// # Arguments
     /// * `setting` - The setting to send to the GoPro
     pub async fn send_setting_unchecked(
@@ -96,8 +99,9 @@ impl GoPro {
         Ok(())
     }
 
+    #[cfg(feature = "settings")]
     ///Sends a setting to the GoPro and checks for a response, erroring if the response is incorrect
-    /// 
+    ///
     /// # Arguments
     /// * `setting` - The setting to send to the GoPro
     pub async fn send_setting(&self, setting: &GoProSetting) -> Result<(), Box<dyn Error>> {
@@ -118,7 +122,7 @@ impl GoPro {
 
     #[cfg(feature = "query")]
     ///Sends a query to the GoPro and returns the response
-    /// 
+    ///
     /// # Arguments
     /// * `query` - The query to send to the GoPro
     pub async fn query(&self, query: &GoProQuery) -> Result<QueryResponse, Box<dyn Error>> {
@@ -150,8 +154,50 @@ impl GoPro {
         Ok(query_response)
     }
 
+    #[cfg(feature = "query")]
+    /// Sends a query to the GoPro and returns the response as an interpreted value
+    /// in an enum
+    ///
+    /// # Note
+    /// The function will return Ok(None) if the response isn't interpretable
+    /// but this should not happpen under normal circumstances
+    ///
+    /// # Arguments
+    /// * `query` - The query to send to the GoPro
+    pub async fn interpreted_query(
+        &self,
+        query: &GoProQuery,
+    ) -> Result<Option<QueryResponseIntepretation>, Box<dyn Error>> {
+        let characteristics = self.device.characteristics();
+
+        let query_write_char = characteristics
+            .iter()
+            .find(|c| c.uuid == GPCharac::Query.to_uuid())
+            .unwrap();
+
+        self.device
+            .write(
+                &query_write_char,
+                query.as_bytes().as_ref(),
+                WriteType::WithoutResponse,
+            )
+            .await?;
+
+        let res = self.get_next_notification().await?;
+        if res.is_none() {
+            return Err("No response from GoPro".into());
+        }
+        let res = res.unwrap();
+        if res.uuid != GPCharac::QueryResponse.to_uuid() {
+            return Err("Response from GoPro came from incorrect UUID".into());
+        }
+
+        let query_response = QueryResponse::deserialize(&res.value)?;
+        Ok(query_response.interpret())
+    }
+
     ///Gets the next notification (response from a command) from the GoPro
-    /// 
+    ///
     /// # Returns
     /// * `Ok(Some(ValueNotification))` - If a notification was received
     /// * `Ok(None)` - If no notification was received
@@ -169,9 +215,9 @@ impl GoPro {
     }
 
     ///Disconnects the GoPro and powers it off
-    /// 
+    ///
     /// # Note
-    /// 
+    ///
     /// The camera will continue to send advertisement packets for 10 hours after being powered off
     /// allowing for an auto wake on reconnecting
     pub async fn disconnect_and_poweroff(self) -> Result<(), Box<dyn Error>> {
@@ -182,7 +228,7 @@ impl GoPro {
 }
 
 ///Inits the bluetooth adapter (central) and returns it to the caller
-/// 
+///
 /// # Arguments
 /// * `adapter_index` - An optional index into the list of bluetooth adapters in case the caller has more than one
 pub async fn init(adapter_index: Option<usize>) -> Result<Adapter, Box<dyn Error>> {
@@ -203,7 +249,7 @@ pub async fn init(adapter_index: Option<usize>) -> Result<Adapter, Box<dyn Error
 
 ///Scans for GoPro devices and returns a list of their names
 ///(may also return previously connected devices some of which may not be GoPros)
-/// 
+///
 /// # Arguments
 /// * `central` - The bluetooth adapter to use for scanning
 pub async fn scan(central: &mut Adapter) -> Result<Vec<String>, Box<dyn Error>> {
@@ -229,7 +275,7 @@ pub async fn scan(central: &mut Adapter) -> Result<Vec<String>, Box<dyn Error>> 
 
 ///
 ///Connects to a GoPro device by name and returns a GoPro object if successful
-/// 
+///
 /// # Arguments
 /// * `gopro_local_name` - The name of the GoPro device to connect to
 /// * `central` - The bluetooth adapter to use for connecting

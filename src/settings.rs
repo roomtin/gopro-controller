@@ -1,8 +1,107 @@
 use crate::services::Sendable;
+
+/// Implements the Sendable trait for a given enum where there is
+/// only one kind of response value
+///
+/// # Arguments
+/// * `$enum` - The enum to implement the trait for
+/// * `$response` - The response bytes for the enum
+/// * `$($variant:path => $bytes:expr),*` - The bytes for each variant
+///
+/// # Usage
+/// ```
+///sendable_impl!(
+///    Hero11Resolution,
+///    &[0x02, 0x02, 0x00],
+///    Hero11Resolution::Res4K => &[0x03, 0x02, 0x01, 0x01],
+///    Hero11Resolution::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
+///    Hero11Resolution::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
+///    Hero11Resolution::Res1080 => &[0x03, 0x02, 0x01, 0x09],
+///    Hero11Resolution::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
+///    Hero11Resolution::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
+///    Hero11Resolution::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
+///    Hero11Resolution::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
+///    Hero11Resolution::Res5_3K => &[0x03, 0x02, 0x01, 0x64]
+///);
+///```
+/// ### Which expands into
+///```
+///impl std::convert::AsRef<Hero11Resolution> for Hero11Resolution {
+///    fn as_ref(&self) -> &Hero11Resolution {
+///        self
+///    }
+///}
+///
+///impl Sendable for Hero11Resolution {
+///    fn as_bytes(&self) -> &'static [u8] {
+///        match self.as_ref() {
+///            Hero11Resolution::Res4K => &[0x03, 0x02, 0x01, 0x01],
+///            Hero11Resolution::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
+///            Hero11Resolution::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
+///            Hero11Resolution::Res1080 => &[0x03, 0x02, 0x01, 0x09],
+///            Hero11Resolution::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
+///            Hero11Resolution::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
+///            Hero11Resolution::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
+///            Hero11Resolution::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
+///            Hero11Resolution::Res5_3K => &[0x03, 0x02, 0x01, 0x64],
+///        }
+///    }
+///
+///    fn response_value_bytes(&self) -> &'static [u8] {
+///        &[0x02, 0x02, 0x00]
+///    }
+///}
+macro_rules! sendable_impl {
+    ($enum:ty, $response:expr, $($variant:path => $bytes:expr),*) => {
+        impl std::convert::AsRef<$enum> for $enum {
+            fn as_ref(&self) -> &$enum {
+                self
+            }
+        }
+
+        impl Sendable for $enum {
+            fn as_bytes(&self) -> &'static [u8] {
+                match self.as_ref() {
+                    $( $variant => $bytes, )*
+                }
+            }
+
+            fn response_value_bytes(&self) -> &'static [u8] {
+                $response
+            }
+        }
+    };
+}
+
+/// Implements the Sendable trait for a given enum where there is
+/// more than one kind of response value
+macro_rules! sendable_impl_complex {
+    ($enum:ty, $($variant:path => $bytes:expr, $response:expr),*) => {
+        impl std::convert::AsRef<$enum> for $enum {
+            fn as_ref(&self) -> &$enum {
+                self
+            }
+        }
+
+        impl Sendable for $enum {
+            fn as_bytes(&self) -> &'static [u8] {
+                match self.as_ref() {
+                    $( $variant => $bytes, )*
+                }
+            }
+
+            fn response_value_bytes(&self) -> &'static [u8] {
+                match self.as_ref() {
+                    $( $variant => $response, )*
+                }
+            }
+        }
+    };
+}
+
 ///Represents a setting that can be changed on a GoPro device
 ///
-/// ### NOTE ###
-///
+/// ### NOTE:
 /// The byte arrays in this enum were taken directly from the GoPro Open Spec:
 ///
 ///<https://gopro.github.io/OpenGoPro/ble_2_0#settings-quick-reference>
@@ -95,32 +194,19 @@ pub enum Hero11Resolution {
     Res5_3K,
 }
 
-impl AsRef<Hero11Resolution> for Hero11Resolution {
-    fn as_ref(&self) -> &Hero11Resolution {
-        self
-    }
-}
-
-use Hero11Resolution as H11R; //alias for conciseness
-impl Sendable for H11R {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11R::Res4K => &[0x03, 0x02, 0x01, 0x01],
-            H11R::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
-            H11R::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
-            H11R::Res1080 => &[0x03, 0x02, 0x01, 0x09],
-            H11R::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
-            H11R::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
-            H11R::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
-            H11R::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
-            H11R::Res5_3K => &[0x03, 0x02, 0x01, 0x64],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x02, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11Resolution,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11Resolution::Res4K => &[0x03, 0x02, 0x01, 0x01],
+    Hero11Resolution::Res2_7K => &[0x03, 0x02, 0x01, 0x04],
+    Hero11Resolution::Res2_7K_4x3 => &[0x03, 0x02, 0x01, 0x06],
+    Hero11Resolution::Res1080 => &[0x03, 0x02, 0x01, 0x09],
+    Hero11Resolution::Res4K_4x3 => &[0x03, 0x02, 0x01, 0x12],
+    Hero11Resolution::Res5_3K_8x7 => &[0x03, 0x02, 0x01, 0x1A],
+    Hero11Resolution::Res5_3K_4x3 => &[0x03, 0x02, 0x01, 0x1B],
+    Hero11Resolution::Res4K_8x7 => &[0x03, 0x02, 0x01, 0x1C],
+    Hero11Resolution::Res5_3K => &[0x03, 0x02, 0x01, 0x64]
+);
 
 pub enum Hero11FPS {
     Fps240,
@@ -134,31 +220,19 @@ pub enum Hero11FPS {
     Fps200,
 }
 
-impl AsRef<Hero11FPS> for Hero11FPS {
-    fn as_ref(&self) -> &Hero11FPS {
-        self
-    }
-}
-
-impl Sendable for Hero11FPS {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            Hero11FPS::Fps240 => &[0x03, 0x03, 0x01, 0x00],
-            Hero11FPS::Fps120 => &[0x03, 0x03, 0x01, 0x01],
-            Hero11FPS::Fps100 => &[0x03, 0x03, 0x01, 0x02],
-            Hero11FPS::Fps60 => &[0x03, 0x03, 0x01, 0x05],
-            Hero11FPS::Fps50 => &[0x03, 0x03, 0x01, 0x06],
-            Hero11FPS::Fps30 => &[0x03, 0x03, 0x01, 0x08],
-            Hero11FPS::Fps25 => &[0x03, 0x03, 0x01, 0x09],
-            Hero11FPS::Fps24 => &[0x03, 0x03, 0x01, 0x0A],
-            Hero11FPS::Fps200 => &[0x03, 0x03, 0x01, 0x0D],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x03, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11FPS,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11FPS::Fps240 => &[0x03, 0x03, 0x01, 0x00],
+    Hero11FPS::Fps120 => &[0x03, 0x03, 0x01, 0x01],
+    Hero11FPS::Fps100 => &[0x03, 0x03, 0x01, 0x02],
+    Hero11FPS::Fps60 => &[0x03, 0x03, 0x01, 0x05],
+    Hero11FPS::Fps50 => &[0x03, 0x03, 0x01, 0x06],
+    Hero11FPS::Fps30 => &[0x03, 0x03, 0x01, 0x08],
+    Hero11FPS::Fps25 => &[0x03, 0x03, 0x01, 0x09],
+    Hero11FPS::Fps24 => &[0x03, 0x03, 0x01, 0x0A],
+    Hero11FPS::Fps200 => &[0x03, 0x03, 0x01, 0x0D]
+);
 
 pub enum Hero11AutoPowerDown {
     Never,
@@ -168,28 +242,15 @@ pub enum Hero11AutoPowerDown {
     ThirtyMinutes,
 }
 
-impl AsRef<Hero11AutoPowerDown> for Hero11AutoPowerDown {
-    fn as_ref(&self) -> &Hero11AutoPowerDown {
-        self
-    }
-}
-
-use Hero11AutoPowerDown as H11APD;
-impl Sendable for H11APD {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11APD::Never => &[0x03, 0x3B, 0x01, 0x00],
-            H11APD::OneMinute => &[0x03, 0x3B, 0x01, 0x01],
-            H11APD::FiveMinutes => &[0x03, 0x3B, 0x01, 0x04],
-            H11APD::FifteenMinutes => &[0x03, 0x3B, 0x01, 0x06],
-            H11APD::ThirtyMinutes => &[0x03, 0x3B, 0x01, 0x07],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x01, 0x3B, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11AutoPowerDown,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11AutoPowerDown::Never => &[0x03, 0x3B, 0x01, 0x00],
+    Hero11AutoPowerDown::OneMinute => &[0x03, 0x3B, 0x01, 0x01],
+    Hero11AutoPowerDown::FiveMinutes => &[0x03, 0x3B, 0x01, 0x04],
+    Hero11AutoPowerDown::FifteenMinutes => &[0x03, 0x3B, 0x01, 0x06],
+    Hero11AutoPowerDown::ThirtyMinutes => &[0x03, 0x3B, 0x01, 0x07]
+);
 
 pub enum Hero11VideoDigitalLense {
     Wide,
@@ -201,30 +262,17 @@ pub enum Hero11VideoDigitalLense {
     LinearHorizonLock,
 }
 
-impl AsRef<Hero11VideoDigitalLense> for Hero11VideoDigitalLense {
-    fn as_ref(&self) -> &Hero11VideoDigitalLense {
-        self
-    }
-}
-
-use Hero11VideoDigitalLense as H11VDL;
-impl Sendable for H11VDL {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11VDL::Wide => &[0x03, 0x79, 0x01, 0x00],
-            H11VDL::Superview => &[0x03, 0x79, 0x01, 0x03],
-            H11VDL::Linear => &[0x03, 0x79, 0x01, 0x04],
-            H11VDL::MaxSuperview => &[0x03, 0x79, 0x01, 0x07],
-            H11VDL::LinearHorizonLeveling => &[0x03, 0x79, 0x01, 0x08],
-            H11VDL::Hyperview => &[0x03, 0x79, 0x01, 0x09],
-            H11VDL::LinearHorizonLock => &[0x03, 0x79, 0x01, 0x0A],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x79, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11VideoDigitalLense,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11VideoDigitalLense::Wide => &[0x03, 0x79, 0x01, 0x00],
+    Hero11VideoDigitalLense::Superview => &[0x03, 0x79, 0x01, 0x03],
+    Hero11VideoDigitalLense::Linear => &[0x03, 0x79, 0x01, 0x04],
+    Hero11VideoDigitalLense::MaxSuperview => &[0x03, 0x79, 0x01, 0x07],
+    Hero11VideoDigitalLense::LinearHorizonLeveling => &[0x03, 0x79, 0x01, 0x08],
+    Hero11VideoDigitalLense::Hyperview => &[0x03, 0x79, 0x01, 0x09],
+    Hero11VideoDigitalLense::LinearHorizonLock => &[0x03, 0x79, 0x01, 0x0A]
+);
 
 pub enum Hero11PhotoDigitalLense {
     MaxSuperview,
@@ -232,26 +280,13 @@ pub enum Hero11PhotoDigitalLense {
     Linear,
 }
 
-impl AsRef<Hero11PhotoDigitalLense> for Hero11PhotoDigitalLense {
-    fn as_ref(&self) -> &Hero11PhotoDigitalLense {
-        self
-    }
-}
-
-use Hero11PhotoDigitalLense as H11PDL;
-impl Sendable for H11PDL {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11PDL::MaxSuperview => &[0x03, 0x7A, 0x01, 0x64],
-            H11PDL::Wide => &[0x03, 0x7A, 0x01, 0x65],
-            H11PDL::Linear => &[0x03, 0x7A, 0x01, 0x66],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x7A, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11PhotoDigitalLense,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11PhotoDigitalLense::MaxSuperview => &[0x03, 0x7A, 0x01, 0x64],
+    Hero11PhotoDigitalLense::Wide => &[0x03, 0x7A, 0x01, 0x65],
+    Hero11PhotoDigitalLense::Linear => &[0x03, 0x7A, 0x01, 0x66]
+);
 
 pub enum Hero11TimeLapseDigitalLense {
     MaxSuperview,
@@ -259,26 +294,13 @@ pub enum Hero11TimeLapseDigitalLense {
     Linear,
 }
 
-impl AsRef<Hero11TimeLapseDigitalLense> for Hero11TimeLapseDigitalLense {
-    fn as_ref(&self) -> &Hero11TimeLapseDigitalLense {
-        self
-    }
-}
-
-use Hero11TimeLapseDigitalLense as H11TDL;
-impl Sendable for H11TDL {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11TDL::MaxSuperview => &[0x03, 0x7B, 0x01, 0x64],
-            H11TDL::Wide => &[0x03, 0x7B, 0x01, 0x65],
-            H11TDL::Linear => &[0x03, 0x7B, 0x01, 0x66],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x7B, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11TimeLapseDigitalLense,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11TimeLapseDigitalLense::MaxSuperview => &[0x03, 0x7B, 0x01, 0x64],
+    Hero11TimeLapseDigitalLense::Wide => &[0x03, 0x7B, 0x01, 0x65],
+    Hero11TimeLapseDigitalLense::Linear => &[0x03, 0x7B, 0x01, 0x66]
+);
 
 pub enum Hero11MediaFormat {
     TimeLapseVideo,
@@ -287,52 +309,26 @@ pub enum Hero11MediaFormat {
     NightLapseVideo,
 }
 
-impl AsRef<Hero11MediaFormat> for Hero11MediaFormat {
-    fn as_ref(&self) -> &Hero11MediaFormat {
-        self
-    }
-}
-
-use Hero11MediaFormat as H11MF;
-impl Sendable for H11MF {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11MF::TimeLapseVideo => &[0x03, 0x80, 0x01, 0x0D],
-            H11MF::TimeLapsePhoto => &[0x03, 0x80, 0x01, 0x14],
-            H11MF::NightLapsePhoto => &[0x03, 0x80, 0x01, 0x15],
-            H11MF::NightLapseVideo => &[0x03, 0x80, 0x01, 0x1A],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x80, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11MediaFormat,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11MediaFormat::TimeLapseVideo => &[0x03, 0x80, 0x01, 0x0D],
+    Hero11MediaFormat::TimeLapsePhoto => &[0x03, 0x80, 0x01, 0x14],
+    Hero11MediaFormat::NightLapsePhoto => &[0x03, 0x80, 0x01, 0x15],
+    Hero11MediaFormat::NightLapseVideo => &[0x03, 0x80, 0x01, 0x1A]
+);
 
 pub enum AntiFlicker {
     SixtyHertz,
     FiftyHertz,
 }
 
-impl AsRef<AntiFlicker> for AntiFlicker {
-    fn as_ref(&self) -> &AntiFlicker {
-        self
-    }
-}
-
-use AntiFlicker as AF;
-impl Sendable for AF {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            AF::SixtyHertz => &[0x03, 0x86, 0x01, 0x02],
-            AF::FiftyHertz => &[0x03, 0x86, 0x01, 0x03],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x86, 0x00]
-    }
-}
+sendable_impl!(
+    AntiFlicker,
+    &[0x02, 0x02, 0x00], // Response bytes
+    AntiFlicker::SixtyHertz => &[0x03, 0x86, 0x01, 0x02],
+    AntiFlicker::FiftyHertz => &[0x03, 0x86, 0x01, 0x03]
+);
 
 pub enum Hero11Hypersmooth {
     Off,
@@ -341,27 +337,14 @@ pub enum Hero11Hypersmooth {
     Auto,
 }
 
-impl AsRef<Hero11Hypersmooth> for Hero11Hypersmooth {
-    fn as_ref(&self) -> &Hero11Hypersmooth {
-        self
-    }
-}
-
-use Hero11Hypersmooth as H11HS;
-impl Sendable for H11HS {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11HS::Off => &[0x03, 0x87, 0x01, 0x00],
-            H11HS::Low => &[0x03, 0x87, 0x01, 0x01],
-            H11HS::Boost => &[0x03, 0x87, 0x01, 0x03],
-            H11HS::Auto => &[0x03, 0x87, 0x01, 0x04],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0x87, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11Hypersmooth,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11Hypersmooth::Off => &[0x03, 0x87, 0x01, 0x00],
+    Hero11Hypersmooth::Low => &[0x03, 0x87, 0x01, 0x01],
+    Hero11Hypersmooth::Boost => &[0x03, 0x87, 0x01, 0x03],
+    Hero11Hypersmooth::Auto => &[0x03, 0x87, 0x01, 0x04]
+);
 
 pub enum Hero11HorizonLeveling {
     VideoOff,
@@ -370,57 +353,29 @@ pub enum Hero11HorizonLeveling {
     PhotoLocked,
 }
 
-impl AsRef<Hero11HorizonLeveling> for Hero11HorizonLeveling {
-    fn as_ref(&self) -> &Hero11HorizonLeveling {
-        self
-    }
-}
-
-use Hero11HorizonLeveling as H11HL;
-impl Sendable for H11HL {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11HL::VideoOff => &[0x03, 0x96, 0x01, 0x00],
-            H11HL::VideoLocked => &[0x03, 0x96, 0x01, 0x02],
-            H11HL::PhotoOff => &[0x03, 0x97, 0x01, 0x00],
-            H11HL::PhotoLocked => &[0x03, 0x97, 0x01, 0x02],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11HL::VideoOff => &[0x02, 0x96, 0x00],
-            H11HL::VideoLocked => &[0x02, 0x96, 0x00],
-            H11HL::PhotoOff => &[0x02, 0x97, 0x00],
-            H11HL::PhotoLocked => &[0x02, 0x97, 0x00],
-        }
-    }
-}
+sendable_impl_complex!(
+    Hero11HorizonLeveling,
+    Hero11HorizonLeveling::VideoOff => &[0x03, 0x96, 0x01, 0x00],
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11HorizonLeveling::VideoLocked => &[0x03, 0x96, 0x01, 0x02],
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11HorizonLeveling::PhotoOff => &[0x03, 0x97, 0x01, 0x00],
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11HorizonLeveling::PhotoLocked => &[0x03, 0x97, 0x01, 0x02],
+    &[0x02, 0x97, 0x00] // Response bytes
+);
 
 pub enum Hero11MaxLense {
     Off,
     On,
 }
 
-impl AsRef<Hero11MaxLense> for Hero11MaxLense {
-    fn as_ref(&self) -> &Hero11MaxLense {
-        self
-    }
-}
-
-use Hero11MaxLense as H11ML;
-impl Sendable for H11ML {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11ML::Off => &[0x03, 0xA2, 0x01, 0x00],
-            H11ML::On => &[0x03, 0xA2, 0x01, 0x01],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xA2, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11MaxLense,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11MaxLense::Off => &[0x03, 0xA2, 0x01, 0x00],
+    Hero11MaxLense::On => &[0x03, 0xA2, 0x01, 0x01]
+);
 
 pub enum Hero11Hindsight {
     FifteenSeconds,
@@ -428,52 +383,25 @@ pub enum Hero11Hindsight {
     Off,
 }
 
-impl AsRef<Hero11Hindsight> for Hero11Hindsight {
-    fn as_ref(&self) -> &Hero11Hindsight {
-        self
-    }
-}
-
-use Hero11Hindsight as H11H;
-impl Sendable for H11H {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11H::FifteenSeconds => &[0x03, 0xA7, 0x01, 0x02],
-            H11H::ThirtySeconds => &[0x03, 0xA7, 0x01, 0x03],
-            H11H::Off => &[0x03, 0xA7, 0x01, 0x04],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xA7, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11Hindsight,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11Hindsight::FifteenSeconds => &[0x03, 0xA7, 0x01, 0x02],
+    Hero11Hindsight::ThirtySeconds => &[0x03, 0xA7, 0x01, 0x03],
+    Hero11Hindsight::Off => &[0x03, 0xA7, 0x01, 0x04]
+);
 
 pub enum Hero11Controls {
     Easy,
     Pro,
 }
 
-impl AsRef<Hero11Controls> for Hero11Controls {
-    fn as_ref(&self) -> &Hero11Controls {
-        self
-    }
-}
-
-use Hero11Controls as H11C;
-
-impl Sendable for H11C {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11C::Easy => &[0x03, 0xAF, 0x01, 0x00],
-            H11C::Pro => &[0x03, 0xAF, 0x01, 0x01],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xAF, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11Controls,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11Controls::Easy => &[0x03, 0xAF, 0x01, 0x00],
+    Hero11Controls::Pro => &[0x03, 0xAF, 0x01, 0x01]
+);
 
 pub enum Hero11Speed {
     UltraSlowMo8X,
@@ -506,101 +434,62 @@ pub enum Hero11Speed {
     SuperSlowMo4x2_7K50Hz,
 }
 
-impl AsRef<Hero11Speed> for Hero11Speed {
-    fn as_ref(&self) -> &Hero11Speed {
-        self
-    }
-}
-
-use Hero11Speed as H11S;
-impl Sendable for H11S {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11S::UltraSlowMo8X => &[0x03, 0xB0, 0x01, 0x00],
-            H11S::SuperSlowMo4X => &[0x03, 0xB0, 0x01, 0x01],
-            H11S::SlowMo2X => &[0x03, 0xB0, 0x01, 0x02],
-            H11S::Normal1X => &[0x03, 0xB0, 0x01, 0x03],
-            H11S::SuperSlowMo4XExtBatt => &[0x03, 0xB0, 0x01, 0x04],
-            H11S::SlowMo2XExtBatt => &[0x03, 0xB0, 0x01, 0x05],
-            H11S::Normal1XExtBatt => &[0x03, 0xB0, 0x01, 0x06],
-            H11S::UltraSlowMo8X50Hz => &[0x03, 0xB0, 0x01, 0x07],
-            H11S::SuperSlowMo4X50Hz => &[0x03, 0xB0, 0x01, 0x08],
-            H11S::SlowMo2X50Hz => &[0x03, 0xB0, 0x01, 0x09],
-            H11S::Normal1X50Hz => &[0x03, 0xB0, 0x01, 0x0A],
-            H11S::SuperSlowMo4XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0B],
-            H11S::SlowMo2XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0C],
-            H11S::Normal1XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0D],
-            H11S::UltraSlowMo8XExtBatt => &[0x03, 0xB0, 0x01, 0x0E],
-            H11S::UltraSlowMo8XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0F],
-            H11S::UltraSlowMo8XLongBatt => &[0x03, 0xB0, 0x01, 0x10],
-            H11S::SuperSlowMo4XLongBatt => &[0x03, 0xB0, 0x01, 0x11],
-            H11S::SlowMo2XLongBatt => &[0x03, 0xB0, 0x01, 0x12],
-            H11S::Normal1XLongBatt => &[0x03, 0xB0, 0x01, 0x13],
-            H11S::UltraSlowMo8XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x14],
-            H11S::SuperSlowMo4XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x15],
-            H11S::SlowMo2XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x16],
-            H11S::Normal1XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x17],
-            H11S::SlowMo2X4K => &[0x03, 0xB0, 0x01, 0x18],
-            H11S::SuperSlowMo4x2_7K => &[0x03, 0xB0, 0x01, 0x19],
-            H11S::SlowMo2X4K50Hz => &[0x03, 0xB0, 0x01, 0x1A],
-            H11S::SuperSlowMo4x2_7K50Hz => &[0x03, 0xB0, 0x01, 0x1B],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xB0, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11Speed,
+    &[0x02, 0x02, 0x00], // Response bytes
+    Hero11Speed::UltraSlowMo8X => &[0x03, 0xB0, 0x01, 0x00],
+    Hero11Speed::SuperSlowMo4X => &[0x03, 0xB0, 0x01, 0x01],
+    Hero11Speed::SlowMo2X => &[0x03, 0xB0, 0x01, 0x02],
+    Hero11Speed::Normal1X => &[0x03, 0xB0, 0x01, 0x03],
+    Hero11Speed::SuperSlowMo4XExtBatt => &[0x03, 0xB0, 0x01, 0x04],
+    Hero11Speed::SlowMo2XExtBatt => &[0x03, 0xB0, 0x01, 0x05],
+    Hero11Speed::Normal1XExtBatt => &[0x03, 0xB0, 0x01, 0x06],
+    Hero11Speed::UltraSlowMo8X50Hz => &[0x03, 0xB0, 0x01, 0x07],
+    Hero11Speed::SuperSlowMo4X50Hz => &[0x03, 0xB0, 0x01, 0x08],
+    Hero11Speed::SlowMo2X50Hz => &[0x03, 0xB0, 0x01, 0x09],
+    Hero11Speed::Normal1X50Hz => &[0x03, 0xB0, 0x01, 0x0A],
+    Hero11Speed::SuperSlowMo4XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0B],
+    Hero11Speed::SlowMo2XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0C],
+    Hero11Speed::Normal1XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0D],
+    Hero11Speed::UltraSlowMo8XExtBatt => &[0x03, 0xB0, 0x01, 0x0E],
+    Hero11Speed::UltraSlowMo8XExtBatt50Hz => &[0x03, 0xB0, 0x01, 0x0F],
+    Hero11Speed::UltraSlowMo8XLongBatt => &[0x03, 0xB0, 0x01, 0x10],
+    Hero11Speed::SuperSlowMo4XLongBatt => &[0x03, 0xB0, 0x01, 0x11],
+    Hero11Speed::SlowMo2XLongBatt => &[0x03, 0xB0, 0x01, 0x12],
+    Hero11Speed::Normal1XLongBatt => &[0x03, 0xB0, 0x01, 0x13],
+    Hero11Speed::UltraSlowMo8XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x14],
+    Hero11Speed::SuperSlowMo4XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x15],
+    Hero11Speed::SlowMo2XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x16],
+    Hero11Speed::Normal1XLongBatt50Hz => &[0x03, 0xB0, 0x01, 0x17],
+    Hero11Speed::SlowMo2X4K => &[0x03, 0xB0, 0x01, 0x18],
+    Hero11Speed::SuperSlowMo4x2_7K => &[0x03, 0xB0, 0x01, 0x19],
+    Hero11Speed::SlowMo2X4K50Hz => &[0x03, 0xB0, 0x01, 0x1A],
+    Hero11Speed::SuperSlowMo4x2_7K50Hz => &[0x03, 0xB0, 0x01, 0x1B]
+);
 
 pub enum Hero11NightPhoto {
     Off,
     On,
 }
 
-impl AsRef<Hero11NightPhoto> for Hero11NightPhoto {
-    fn as_ref(&self) -> &Hero11NightPhoto {
-        self
-    }
-}
-
-use Hero11NightPhoto as H11NP;
-impl Sendable for H11NP {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11NP::Off => &[0x03, 0xB1, 0x01, 0x00],
-            H11NP::On => &[0x03, 0xB1, 0x01, 0x01],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xB1, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11NightPhoto,
+    &[0x02, 0xB1, 0x00], //Response bytes
+    Hero11NightPhoto::Off => &[0x03, 0xB1, 0x01, 0x00],
+    Hero11NightPhoto::On => &[0x03, 0xB1, 0x01, 0x01]
+);
 
 pub enum Hero11WirelessBand {
     TwoPointFourGhz,
     FiveGhz,
 }
 
-impl AsRef<Hero11WirelessBand> for Hero11WirelessBand {
-    fn as_ref(&self) -> &Hero11WirelessBand {
-        self
-    }
-}
-
-use Hero11WirelessBand as H11WB;
-impl Sendable for H11WB {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11WB::TwoPointFourGhz => &[0x03, 0xB2, 0x01, 0x00],
-            H11WB::FiveGhz => &[0x03, 0xB2, 0x01, 0x01],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xB2, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11WirelessBand,
+    &[0x02, 0xB2, 0x00], //Response bytes
+    Hero11WirelessBand::TwoPointFourGhz => &[0x03, 0xB2, 0x01, 0x00],
+    Hero11WirelessBand::FiveGhz => &[0x03, 0xB2, 0x01, 0x01]
+);
 
 pub enum Hero11TrailLength {
     Short,
@@ -608,26 +497,13 @@ pub enum Hero11TrailLength {
     Max,
 }
 
-impl AsRef<Hero11TrailLength> for Hero11TrailLength {
-    fn as_ref(&self) -> &Hero11TrailLength {
-        self
-    }
-}
-
-use Hero11TrailLength as H11TL;
-impl Sendable for H11TL {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11TL::Short => &[0x03, 0xB3, 0x01, 0x01],
-            H11TL::Long => &[0x03, 0xB3, 0x01, 0x02],
-            H11TL::Max => &[0x03, 0xB3, 0x01, 0x03],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xB3, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11TrailLength,
+    &[0x02, 0xB3, 0x00], //Response bytes
+    Hero11TrailLength::Short => &[0x03, 0xB3, 0x01, 0x01],
+    Hero11TrailLength::Long => &[0x03, 0xB3, 0x01, 0x02],
+    Hero11TrailLength::Max => &[0x03, 0xB3, 0x01, 0x03]
+);
 
 pub enum Hero11VideoMode {
     HighestQuality,
@@ -636,24 +512,11 @@ pub enum Hero11VideoMode {
     LongestBatteryGreenIcon,
 }
 
-impl AsRef<Hero11VideoMode> for Hero11VideoMode {
-    fn as_ref(&self) -> &Hero11VideoMode {
-        self
-    }
-}
-
-use Hero11VideoMode as H11VM;
-impl Sendable for H11VM {
-    fn as_bytes(&self) -> &'static [u8] {
-        match self.as_ref() {
-            H11VM::HighestQuality => &[0x03, 0xB4, 0x01, 0x00],
-            H11VM::ExtendedBattery => &[0x03, 0xB4, 0x01, 0x01],
-            H11VM::ExtendedBatteryGreenIcon => &[0x03, 0xB4, 0x01, 0x65],
-            H11VM::LongestBatteryGreenIcon => &[0x03, 0xB4, 0x01, 0x66],
-        }
-    }
-
-    fn response_value_bytes(&self) -> &'static [u8] {
-        &[0x02, 0xB4, 0x00]
-    }
-}
+sendable_impl!(
+    Hero11VideoMode,
+    &[0x02, 0xB4, 0x00], //Response bytes
+    Hero11VideoMode::HighestQuality => &[0x03, 0xB4, 0x01, 0x00],
+    Hero11VideoMode::ExtendedBattery => &[0x03, 0xB4, 0x01, 0x01],
+    Hero11VideoMode::ExtendedBatteryGreenIcon => &[0x03, 0xB4, 0x01, 0x65],
+    Hero11VideoMode::LongestBatteryGreenIcon => &[0x03, 0xB4, 0x01, 0x66]
+);

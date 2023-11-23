@@ -12,10 +12,25 @@ pub enum GoProQuery {
     UnregisterSettingValueUpdates(Vec<StatusID>),
     UnregisterStatusValueUpdates(Vec<StatusID>),
     UnregisterAvailableOptionSettings(Vec<StatusID>),
+    /// ## TODO:
+    /// This variant seems to not work like the rest of the queries
+    /// and definitely shouldn't return the bytes that it does
+    /// right now.
+    /// # Don't use.
     AsyncNotificationSettingChanged,
+    /// ## TODO:
+    /// This variant seems to not work like the rest of the queries
+    /// and definitely shouldn't return the bytes that it does
+    /// right now.
+    /// # Don't use.
     AsyncNotificationStatusChanged,
+    /// ## TODO:
+    /// This variant seems to not work like the rest of the queries
+    /// and definitely shouldn't return the bytes that it does
+    /// right now.
+    /// # Don't use.
     AsyncNotificationOptionSettingChanged,
-}   
+}
 
 impl AsRef<GoProQuery> for GoProQuery {
     fn as_ref(&self) -> &GoProQuery {
@@ -26,9 +41,9 @@ impl AsRef<GoProQuery> for GoProQuery {
 use GoProQuery as GPC;
 impl GoProQuery {
     /// Returns a byte array that can be sent to a GoPro Query characteristic
-    /// 
+    ///
     /// # Note:
-    /// 
+    ///
     /// The byte arrays in this implementation were taken directly from the GoPro Open Spec:
     /// <https://gopro.github.io/OpenGoPro/ble_2_0#query-commands>
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -88,9 +103,9 @@ fn query_builder(query_id: u8, status_ids: Vec<StatusID>) -> Vec<u8> {
 }
 
 /// Camera Status Identifiers
-/// 
+///
 /// # Note:
-/// 
+///
 /// The integers in this implementation were taken directly from the GoPro Open Spec:
 /// <https://gopro.github.io/OpenGoPro/ble_2_0#status-ids>
 #[derive(Clone, Copy)]
@@ -355,6 +370,100 @@ impl StatusID {
     }
 }
 
+/// Converts a u8 to a StatusID
+impl TryFrom<u8> for StatusID {
+    type Error = &'static str;
+
+    fn try_from(id: u8) -> Result<Self, Self::Error> {
+        match id {
+            1 => Ok(StatusID::InternalBatteryPresent),
+            2 => Ok(StatusID::InternalBatteryLevel),
+            6 => Ok(StatusID::SystemHot),
+            8 => Ok(StatusID::SystemBusy),
+            9 => Ok(StatusID::QuickCaptureActive),
+            10 => Ok(StatusID::EncodingActive),
+            11 => Ok(StatusID::LCDLockActive),
+            13 => Ok(StatusID::VideoProgressCounter),
+            17 => Ok(StatusID::WirelessConnectionsEnabled),
+            19 => Ok(StatusID::PairingState),
+            20 => Ok(StatusID::LastPairingType),
+            21 => Ok(StatusID::PairTime),
+            22 => Ok(StatusID::WiFiScanState),
+            23 => Ok(StatusID::WiFiScanTimeMsec),
+            24 => Ok(StatusID::WiFiProvisionStatus),
+            26 => Ok(StatusID::RemoteControlVersion),
+            27 => Ok(StatusID::RemoteControlConnected),
+            28 => Ok(StatusID::WirelessPairingState),
+            29 => Ok(StatusID::WlanSSID),
+            30 => Ok(StatusID::ApSSID),
+            31 => Ok(StatusID::AppCount),
+            32 => Ok(StatusID::PreviewStreamEnabled),
+            33 => Ok(StatusID::SdStatus),
+            34 => Ok(StatusID::RemainingPhotos),
+            35 => Ok(StatusID::RemainingVideoTime),
+            36 => Ok(StatusID::NumGroupPhotos),
+            37 => Ok(StatusID::NumGroupVideos),
+            38 => Ok(StatusID::NumTotalPhotos),
+            39 => Ok(StatusID::NumTotalVideos),
+            41 => Ok(StatusID::OtaStatus),
+            42 => Ok(StatusID::DownloadCancelRequestPending),
+            45 => Ok(StatusID::CameraLocateActive),
+            49 => Ok(StatusID::MultiShotCountDown),
+            54 => Ok(StatusID::RemainingSpace),
+            55 => Ok(StatusID::PreviewStreamSupported),
+            56 => Ok(StatusID::WiFiBars),
+            58 => Ok(StatusID::NumHilights),
+            59 => Ok(StatusID::LastHilightTimeMsec),
+            60 => Ok(StatusID::NextPollMsec),
+            64 => Ok(StatusID::RemainingTimelapseTime),
+            65 => Ok(StatusID::ExposureSelectType),
+            66 => Ok(StatusID::ExposureSelectX),
+            67 => Ok(StatusID::ExposureSelectY),
+            68 => Ok(StatusID::GpsStatus),
+            69 => Ok(StatusID::ApState),
+            70 => Ok(StatusID::InternalBatteryPercentage),
+            74 => Ok(StatusID::AccMicStatus),
+            75 => Ok(StatusID::DigitalZoom),
+            76 => Ok(StatusID::WirelessBand),
+            77 => Ok(StatusID::DigitalZoomActive),
+            78 => Ok(StatusID::MobileFriendlyVideo),
+            79 => Ok(StatusID::FirstTimeUse),
+            81 => Ok(StatusID::Band5ghzAvailable),
+            82 => Ok(StatusID::SystemReady),
+            83 => Ok(StatusID::BattOkayForOta),
+            85 => Ok(StatusID::VideoLowTempAlert),
+            86 => Ok(StatusID::ActualOrientation),
+            88 => Ok(StatusID::ZoomWhileEncoding),
+            89 => Ok(StatusID::CurrentMode),
+            93 => Ok(StatusID::ActiveVideoPresets),
+            94 => Ok(StatusID::ActivePhotoPresets),
+            95 => Ok(StatusID::ActiveTimelapsePresets),
+            96 => Ok(StatusID::ActivePresetsGroup),
+            97 => Ok(StatusID::ActivePreset),
+            98 => Ok(StatusID::PresetModified),
+            99 => Ok(StatusID::RemainingLiveBursts),
+            100 => Ok(StatusID::NumTotalLiveBursts),
+            101 => Ok(StatusID::CaptureDelayActive),
+            102 => Ok(StatusID::MediaModMicStatus),
+            103 => Ok(StatusID::TimewarpSpeedRampActive),
+            104 => Ok(StatusID::LinuxCoreActive),
+            105 => Ok(StatusID::CameraLensType),
+            106 => Ok(StatusID::VideoHindsightCaptureActive),
+            107 => Ok(StatusID::ScheduledPreset),
+            108 => Ok(StatusID::ScheduledEnabled),
+            110 => Ok(StatusID::MediaModStatus),
+            111 => Ok(StatusID::SdRatingCheckError),
+            112 => Ok(StatusID::SdWriteSpeedError),
+            113 => Ok(StatusID::TurboTransfer),
+            114 => Ok(StatusID::CameraControlStatus),
+            115 => Ok(StatusID::UsbConnected),
+            116 => Ok(StatusID::AllowControlOverUsb),
+            117 => Ok(StatusID::TotalSDSpaceKB),
+            _ => Err("Invalid StatusID"),
+        }
+    }
+}
+
 #[derive(Debug)]
 /// Represents the response to a query sent to a GoPro device
 pub struct QueryResponse {
@@ -369,9 +478,24 @@ pub struct QueryResponse {
     pub status_value: Vec<u8>,
 }
 
-//TODO: Need functionality for interpreting the status_value field
-// in a way that makes sense given the status_id that was queried
+/// Represents the different ways that a query response can be interpreted
+#[derive(Debug)]
+pub enum QueryResponseIntepretation {
+    /// The response was a single byte
+    Byte(u8),
 
+    Bool(bool),
+    /// Like a byte, but the value is 0..=100
+    Percentage(u8),
+
+    /// Soon to be replaced with another enum of more specific types
+    ByteVec(Vec<u8>),
+    /// The response was a single byte
+    String(String),
+}
+
+use QueryResponseIntepretation as QRI;
+use StatusID as S;
 impl QueryResponse {
     pub fn deserialize(data: &[u8]) -> Result<Self, &'static str> {
         if data.len() < 5 {
@@ -416,6 +540,127 @@ impl QueryResponse {
             status_value_length,
             status_value,
         })
+    }
+
+    /// If the caller is only interested in the status value, this function
+    /// will return it in a format that is easier to work with
+    ///
+    /// # Note:
+    /// All the ByteVec status values are returned as a Vec<u8> for now
+    /// but many of them should actually be interpreted as a struct.
+    ///
+    /// Furthermore, all of the Byte status values are returned as a u8 but
+    /// each of these could be represented as an enum for clearer semantics.
+    /// As of now, the caller will have to view the Value field of the GoPro
+    /// Open Spec to determine what the value means:
+    ///
+    /// <https://gopro.github.io/OpenGoPro/ble_2_0#status-ids>
+    ///
+    /// # Returns:
+    /// * `Some(QueryResponseIntepretation)` - If the status id is valid
+    /// * `None` - If the status id is invalid
+    pub fn interpret(&self) -> Option<QueryResponseIntepretation> {
+        let status_id = StatusID::try_from(self.status_id);
+        if let Err(_) = status_id {
+            return None;
+        }
+        let status_id = status_id.unwrap();
+        let interpretation = match status_id {
+            //Group Bool Like Responses
+            S::InternalBatteryPresent
+            | S::SystemHot
+            | S::SystemBusy
+            | S::QuickCaptureActive
+            | S::EncodingActive
+            | S::LCDLockActive
+            | S::WirelessConnectionsEnabled
+            | S::RemoteControlConnected
+            | S::PreviewStreamEnabled
+            | S::DownloadCancelRequestPending
+            | S::CameraLocateActive
+            | S::PreviewStreamSupported
+            | S::GpsStatus
+            | S::ApState
+            | S::DigitalZoomActive
+            | S::MobileFriendlyVideo
+            | S::FirstTimeUse
+            | S::Band5ghzAvailable
+            | S::SystemReady
+            | S::BattOkayForOta
+            | S::VideoLowTempAlert
+            | S::ZoomWhileEncoding
+            | S::CaptureDelayActive
+            | S::LinuxCoreActive
+            | S::VideoHindsightCaptureActive
+            | S::ScheduledEnabled
+            | S::SdRatingCheckError
+            | S::TurboTransfer
+            | S::UsbConnected
+            | S::AllowControlOverUsb => QRI::Bool(self.status_value[0] == 1),
+
+            // Group Byte Like Responses
+            S::InternalBatteryLevel
+            | S::PairingState
+            | S::LastPairingType
+            | S::WiFiScanState
+            | S::WiFiProvisionStatus
+            | S::SdStatus
+            | S::OtaStatus
+            | S::ExposureSelectType
+            | S::AccMicStatus
+            | S::WirelessBand
+            | S::ActualOrientation
+            | S::MediaModMicStatus
+            | S::TimewarpSpeedRampActive
+            | S::CameraLensType
+            | S::MediaModStatus
+            | S::CameraControlStatus => QRI::Byte(self.status_value[0]),
+
+            // Group ByteVec Like Responses
+            S::VideoProgressCounter
+            | S::PairTime
+            | S::WiFiScanTimeMsec
+            | S::RemoteControlVersion
+            | S::WirelessPairingState
+            | S::AppCount
+            | S::RemainingPhotos
+            | S::RemainingVideoTime
+            | S::NumGroupPhotos
+            | S::NumGroupVideos
+            | S::NumTotalPhotos
+            | S::NumTotalVideos
+            | S::MultiShotCountDown
+            | S::RemainingSpace
+            | S::WiFiBars
+            | S::NumHilights
+            | S::LastHilightTimeMsec
+            | S::NextPollMsec
+            | S::RemainingTimelapseTime
+            | S::CurrentMode
+            | S::ActiveVideoPresets
+            | S::ActivePhotoPresets
+            | S::ActiveTimelapsePresets
+            | S::ActivePresetsGroup
+            | S::ActivePreset
+            | S::PresetModified
+            | S::RemainingLiveBursts
+            | S::NumTotalLiveBursts
+            | S::ScheduledPreset
+            | S::SdWriteSpeedError
+            | S::TotalSDSpaceKB => QRI::ByteVec(self.status_value.to_vec()),
+
+            //Group String Like Responses
+            S::WlanSSID | S::ApSSID => {
+                QRI::String(String::from_utf8(self.status_value.to_vec()).unwrap())
+            }
+
+            //Group Percentage Like Responses
+            S::ExposureSelectX
+            | S::ExposureSelectY
+            | S::InternalBatteryPercentage
+            | S::DigitalZoom => QRI::Percentage(self.status_value[0]),
+        };
+        Some(interpretation)
     }
 }
 

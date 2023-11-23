@@ -1,6 +1,8 @@
 use super::*;
 use std::time::Duration;
 use tokio::time;
+
+#[cfg(feature = "settings")]
 use crate::settings::*;
 
 #[cfg(feature = "query")]
@@ -88,6 +90,83 @@ async fn test_queryies() {
     gopro.disconnect_and_poweroff().await.unwrap();
 }
 
+#[cfg(feature = "query")]
+#[tokio::test]
+async fn test_query_interp() {
+    let mut central = init(None).await.unwrap();
+    let mut devices = scan(&mut central).await.unwrap();
+    devices.retain(|d| d.contains("GoPro"));
+    assert!(devices.len() > 0, "No GoPro devices found");
+
+    let gopro = connect(devices.first().unwrap().clone(), &mut central)
+        .await
+        .unwrap();
+
+    println!("Connected to GoPro");
+
+    // Test a query that returns a Percentage interpretation
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying Battery Percentage");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![
+            StatusID::InternalBatteryPercentage,
+        ]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!("Percentage left: {:?}", response);
+
+    // Test a query that returns a Bool interpretation
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying System Hot");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![StatusID::SystemHot]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!("Too Hot?: {:?}", response);
+
+    // Test a query that returns a Byte interpretation
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying Actual Orientation");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![
+            StatusID::ActualOrientation,
+        ]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!(
+        "Orientation (0:Upright 1:Upside 2:Right 3:Left): {:?}",
+        response
+    );
+
+    // Test a query that returns a ByteVec interpretation
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying Total SD Card Space Kb");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![StatusID::TotalSDSpaceKB]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!("Total Space in Kb: {:?}", response);
+
+    // Test a query that returns a String interpretation
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying AP SSID");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![StatusID::ApSSID]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!("ApSSID: {:?}", response);
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Powering off");
+    gopro.disconnect_and_poweroff().await.unwrap();
+}
+
+#[cfg(feature = "settings")]
 #[tokio::test]
 async fn test_some_settings() {
     let mut central = init(None).await.unwrap();
