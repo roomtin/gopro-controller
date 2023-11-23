@@ -7,7 +7,7 @@ mod settings;
 mod tests;
 pub use crate::command::GoProCommand;
 #[cfg(feature = "query")]
-pub use crate::query::{GoProQuery, QueryResponse};
+pub use crate::query::{GoProQuery, QueryResponse, QueryResponseIntepretation};
 pub use crate::services::{
     GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
 };
@@ -148,6 +148,45 @@ impl GoPro {
 
         let query_response = QueryResponse::deserialize(&res.value)?;
         Ok(query_response)
+    }
+
+    #[cfg(feature = "query")]
+    /// Sends a query to the GoPro and returns the response as an interpreted value 
+    /// in an enum 
+    ///
+    /// # Note
+    /// The function will return Ok(None) if the response isn't interpretable
+    /// but this should not happpen under normal circumstances
+    ///
+    /// # Arguments
+    /// * `query` - The query to send to the GoPro
+    pub async fn interpreted_query(&self, query: &GoProQuery) -> Result<Option<QueryResponseIntepretation>, Box<dyn Error>> {
+        let characteristics = self.device.characteristics();
+
+        let query_write_char = characteristics
+            .iter()
+            .find(|c| c.uuid == GPCharac::Query.to_uuid())
+            .unwrap();
+
+        self.device
+            .write(
+                &query_write_char,
+                query.as_bytes().as_ref(),
+                WriteType::WithoutResponse,
+            )
+            .await?;
+
+        let res = self.get_next_notification().await?;
+        if res.is_none() {
+            return Err("No response from GoPro".into());
+        }
+        let res = res.unwrap();
+        if res.uuid != GPCharac::QueryResponse.to_uuid() {
+            return Err("Response from GoPro came from incorrect UUID".into());
+        }
+
+        let query_response = QueryResponse::deserialize(&res.value)?;
+        Ok(query_response.interpret())
     }
 
     ///Gets the next notification (response from a command) from the GoPro

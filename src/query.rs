@@ -479,6 +479,7 @@ pub struct QueryResponse {
 }
 
 /// Represents the different ways that a query response can be interpreted
+#[derive(Debug)]
 pub enum QueryResponseIntepretation {
     /// The response was a single byte
     Byte(u8),
@@ -543,8 +544,21 @@ impl QueryResponse {
     /// If the caller is only interested in the status value, this function
     /// will return it in a format that is easier to work with
     ///
-    /// # Todo: Clean up function by grouping return types with `|` operator
-    fn interpret(&self) -> Option<QueryResponseIntepretation> {
+    /// # Note:
+    /// All the ByteVec status values are returned as a Vec<u8> for now
+    /// but many of them should actually be interpreted as a struct.
+    ///
+    /// Furthermore, all of the Byte status values are returned as a u8 but
+    /// each of these could be represented as an enum for clearer semantics.
+    /// As of now, the caller will have to view the Value field of the GoPro
+    /// Open Spec to determine what the value means:
+    ///
+    /// <https://gopro.github.io/OpenGoPro/ble_2_0#status-ids>
+    ///
+    /// # Returns:
+    /// * `Some(QueryResponseIntepretation)` - If the status id is valid
+    /// * `None` - If the status id is invalid
+    pub fn interpret(&self) -> Option<QueryResponseIntepretation> {
         let status_id = StatusID::try_from(self.status_id);
         if let Err(_) = status_id {
             return None;
@@ -602,12 +616,11 @@ impl QueryResponse {
             | S::CameraControlStatus => QRI::Byte(self.status_value[0]),
 
             // Group ByteVec Like Responses
-
             //TODO: Interpret this further, perhaps as a struct
             S::VideoProgressCounter
-            | S::PairTime
-            | S::WiFiScanTimeMsec
-            | S::RemoteControlVersion
+            | S::PairTime 
+            | S::WiFiScanTimeMsec 
+            | S::RemoteControlVersion 
             | S::WirelessPairingState
             | S::AppCount
             | S::RemainingPhotos

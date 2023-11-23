@@ -22,8 +22,7 @@ tokio = { version = "1.33.0", features = ["full"] }
 uuid = "1.5.0"
 
 [features]
-default = ["query", "settings", "experimental"]
+default = ["query", "settings"]
 settings = []
 query = []
 wifi = ["query"]
-experimental = []
