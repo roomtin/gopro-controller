@@ -78,6 +78,7 @@ impl ToUUID for GoProWifiApCharacteristics {
 ///
 ///Represents the different characteristics that the GoProCamManagement service has
 #[cfg(feature = "wifi")]
+#[allow(dead_code)]
 pub enum GoProManagementCharacteristics {
     NetworkManagementCommand,
     NetworkManagementResponse,

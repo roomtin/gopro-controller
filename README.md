@@ -68,7 +68,7 @@ I don't own any other models to test with so for now all I can verify for is the
 
 ## Notes
 ### BLE
-The BLE also seems kinda flakey on a cold start. Getting pairing to work (or even reconnecting after the GoPro has fully gone to sleep after 10 hours of inactivity) can require powering the camera off and on a few times or removing and reinserting the battery.
+BLE seems flakey on a cold start. Getting pairing to work (or even reconnecting after the GoPro has fully gone to sleep after 10 hours of inactivity) can require powering the camera off and on a few times or removing and reinserting the battery.
 
 ### Pairing
 At the moment the library cannot pair the camera for the first time. You must pair the camera with your system by putting the camera in pairing mode (Preferences -> Wireless Connections -> Connect Device -> GoPro Quik App) and connecting in your system's bluetooth settings. Once the camera is paired, you can connect to it from this library without pairing mode.

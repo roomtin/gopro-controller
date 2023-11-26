@@ -589,7 +589,7 @@ impl QueryResponse {
             | S::BattOkayForOta
             | S::VideoLowTempAlert
             | S::ZoomWhileEncoding
-            | S::CaptureDelayActive
+            | S::CaptureDelayActive 
             | S::LinuxCoreActive
             | S::VideoHindsightCaptureActive
             | S::ScheduledEnabled

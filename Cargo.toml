@@ -7,11 +7,11 @@ readme = "README.md"
 license-file = "LICENSE"
 description = "Open source Rust Library for interacting with GoPro Cameras over BLE and WiFi"
 categories = ["api-bindings", "multimedia", "embedded"]
-keywords = ["gopro", "camera", "bluetooth", "hero"]
+keywords = ["gopro", "camera", "bluetooth", "wifi", "hero"]
 repository = "https://github.com/roomtin/gopro-controller"
 
 #Reminder to flag features
-#no-publish = true
+no-publish = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,9 +20,10 @@ btleplug = "0.11.1"
 futures = "0.3.29"
 tokio = { version = "1.33.0", features = ["full"] }
 uuid = "1.5.0"
+wifi-rs = "0.2.2"
 
 [features]
-default = ["settings"]
+default = ["settings", "wifi"]
 settings = []
 query = []
 wifi = ["query"]

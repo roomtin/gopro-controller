@@ -222,7 +222,7 @@ pub enum Hero11FPS {
 
 sendable_impl!(
     Hero11FPS,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x03, 0x00], // Response bytes
     Hero11FPS::Fps240 => &[0x03, 0x03, 0x01, 0x00],
     Hero11FPS::Fps120 => &[0x03, 0x03, 0x01, 0x01],
     Hero11FPS::Fps100 => &[0x03, 0x03, 0x01, 0x02],
@@ -244,7 +244,7 @@ pub enum Hero11AutoPowerDown {
 
 sendable_impl!(
     Hero11AutoPowerDown,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x3B, 0x00], // Response bytes
     Hero11AutoPowerDown::Never => &[0x03, 0x3B, 0x01, 0x00],
     Hero11AutoPowerDown::OneMinute => &[0x03, 0x3B, 0x01, 0x01],
     Hero11AutoPowerDown::FiveMinutes => &[0x03, 0x3B, 0x01, 0x04],
@@ -264,7 +264,7 @@ pub enum Hero11VideoDigitalLense {
 
 sendable_impl!(
     Hero11VideoDigitalLense,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x79, 0x00], // Response bytes
     Hero11VideoDigitalLense::Wide => &[0x03, 0x79, 0x01, 0x00],
     Hero11VideoDigitalLense::Superview => &[0x03, 0x79, 0x01, 0x03],
     Hero11VideoDigitalLense::Linear => &[0x03, 0x79, 0x01, 0x04],
@@ -282,7 +282,7 @@ pub enum Hero11PhotoDigitalLense {
 
 sendable_impl!(
     Hero11PhotoDigitalLense,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x7A, 0x00], // Response bytes
     Hero11PhotoDigitalLense::MaxSuperview => &[0x03, 0x7A, 0x01, 0x64],
     Hero11PhotoDigitalLense::Wide => &[0x03, 0x7A, 0x01, 0x65],
     Hero11PhotoDigitalLense::Linear => &[0x03, 0x7A, 0x01, 0x66]
@@ -296,7 +296,7 @@ pub enum Hero11TimeLapseDigitalLense {
 
 sendable_impl!(
     Hero11TimeLapseDigitalLense,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x7B, 0x00], // Response bytes
     Hero11TimeLapseDigitalLense::MaxSuperview => &[0x03, 0x7B, 0x01, 0x64],
     Hero11TimeLapseDigitalLense::Wide => &[0x03, 0x7B, 0x01, 0x65],
     Hero11TimeLapseDigitalLense::Linear => &[0x03, 0x7B, 0x01, 0x66]
@@ -311,7 +311,7 @@ pub enum Hero11MediaFormat {
 
 sendable_impl!(
     Hero11MediaFormat,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x80, 0x00], // Response bytes
     Hero11MediaFormat::TimeLapseVideo => &[0x03, 0x80, 0x01, 0x0D],
     Hero11MediaFormat::TimeLapsePhoto => &[0x03, 0x80, 0x01, 0x14],
     Hero11MediaFormat::NightLapsePhoto => &[0x03, 0x80, 0x01, 0x15],
@@ -325,7 +325,7 @@ pub enum AntiFlicker {
 
 sendable_impl!(
     AntiFlicker,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x86, 0x00], // Response bytes
     AntiFlicker::SixtyHertz => &[0x03, 0x86, 0x01, 0x02],
     AntiFlicker::FiftyHertz => &[0x03, 0x86, 0x01, 0x03]
 );
@@ -339,7 +339,7 @@ pub enum Hero11Hypersmooth {
 
 sendable_impl!(
     Hero11Hypersmooth,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x87, 0x00], // Response bytes
     Hero11Hypersmooth::Off => &[0x03, 0x87, 0x01, 0x00],
     Hero11Hypersmooth::Low => &[0x03, 0x87, 0x01, 0x01],
     Hero11Hypersmooth::Boost => &[0x03, 0x87, 0x01, 0x03],
@@ -356,11 +356,11 @@ pub enum Hero11HorizonLeveling {
 sendable_impl_complex!(
     Hero11HorizonLeveling,
     Hero11HorizonLeveling::VideoOff => &[0x03, 0x96, 0x01, 0x00],
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x96, 0x00], // Response bytes
     Hero11HorizonLeveling::VideoLocked => &[0x03, 0x96, 0x01, 0x02],
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x96, 0x00], // Response bytes
     Hero11HorizonLeveling::PhotoOff => &[0x03, 0x97, 0x01, 0x00],
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0x97, 0x00], // Response bytes
     Hero11HorizonLeveling::PhotoLocked => &[0x03, 0x97, 0x01, 0x02],
     &[0x02, 0x97, 0x00] // Response bytes
 );
@@ -372,7 +372,7 @@ pub enum Hero11MaxLense {
 
 sendable_impl!(
     Hero11MaxLense,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0xA2, 0x00], // Response bytes
     Hero11MaxLense::Off => &[0x03, 0xA2, 0x01, 0x00],
     Hero11MaxLense::On => &[0x03, 0xA2, 0x01, 0x01]
 );
@@ -385,7 +385,7 @@ pub enum Hero11Hindsight {
 
 sendable_impl!(
     Hero11Hindsight,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0xA7, 0x00], // Response bytes
     Hero11Hindsight::FifteenSeconds => &[0x03, 0xA7, 0x01, 0x02],
     Hero11Hindsight::ThirtySeconds => &[0x03, 0xA7, 0x01, 0x03],
     Hero11Hindsight::Off => &[0x03, 0xA7, 0x01, 0x04]
@@ -398,7 +398,7 @@ pub enum Hero11Controls {
 
 sendable_impl!(
     Hero11Controls,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0xAF, 0x00], // Response bytes
     Hero11Controls::Easy => &[0x03, 0xAF, 0x01, 0x00],
     Hero11Controls::Pro => &[0x03, 0xAF, 0x01, 0x01]
 );
@@ -436,7 +436,7 @@ pub enum Hero11Speed {
 
 sendable_impl!(
     Hero11Speed,
-    &[0x02, 0x02, 0x00], // Response bytes
+    &[0x02, 0xB0, 0x00], // Response bytes
     Hero11Speed::UltraSlowMo8X => &[0x03, 0xB0, 0x01, 0x00],
     Hero11Speed::SuperSlowMo4X => &[0x03, 0xB0, 0x01, 0x01],
     Hero11Speed::SlowMo2X => &[0x03, 0xB0, 0x01, 0x02],

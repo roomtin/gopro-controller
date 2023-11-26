@@ -11,6 +11,10 @@ pub enum GoProCommand {
     ShutterStop,
     Sleep,
     AddHilightDuringEncoding,
+    #[cfg(feature = "wifi")]
+    ApOff,
+    #[cfg(feature = "wifi")]
+    ApOn,
     VideoMode,
     PhotoMode,
     TimelapseMode,
@@ -39,6 +43,10 @@ impl Sendable for GPC {
             GPC::ShutterStart => &[0x03, 0x01, 0x01, 0x01],
             GPC::ShutterStop => &[0x03, 0x01, 0x01, 0x00],
             GPC::Sleep => &[0x01, 0x05],
+            #[cfg(feature = "wifi")]
+            GPC::ApOff => &[0x03, 0x17, 0x01, 0x00],
+            #[cfg(feature = "wifi")]
+            GPC::ApOn => &[0x03, 0x17, 0x01, 0x01],
             GPC::AddHilightDuringEncoding => &[0x01, 0x18],
             GPC::VideoMode => &[0x04, 0x3E, 0x02, 0x03, 0xE8],
             GPC::PhotoMode => &[0x04, 0x3E, 0x02, 0x03, 0xE9],
@@ -50,6 +58,10 @@ impl Sendable for GPC {
             GPC::ShutterStart => &[0x02, 0x01, 0x00],
             GPC::ShutterStop => &[0x02, 0x01, 0x00],
             GPC::Sleep => &[0x02, 0x05, 0x00],
+            #[cfg(feature = "wifi")]
+            GPC::ApOff => &[0x02, 0x17, 0x00],
+            #[cfg(feature = "wifi")]
+            GPC::ApOn => &[0x02, 0x17, 0x00],
             GPC::AddHilightDuringEncoding => &[0x02, 0x18, 0x00],
             GPC::VideoMode => &[0x02, 0x3E, 0x00],
             GPC::PhotoMode => &[0x02, 0x3E, 0x00],

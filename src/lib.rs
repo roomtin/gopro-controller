@@ -1,4 +1,6 @@
 mod command;
+#[cfg(feature = "wifi")]
+mod wifi;
 #[cfg(feature = "query")]
 mod query;
 mod services;
@@ -6,19 +8,28 @@ mod services;
 mod settings;
 #[cfg(test)]
 mod tests;
-pub use crate::command::GoProCommand;
+
 #[cfg(feature = "query")]
 pub use crate::query::{GoProQuery, QueryResponse, QueryResponseIntepretation};
+
 pub use crate::services::{
-    GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID,
+    GoProControlAndQueryCharacteristics as GPCharac, GoProServices, Sendable, ToUUID, GoProWifiApCharacteristics as GPWifiCharac,
 };
+
+pub use crate::command::GoProCommand;
+
 #[cfg(feature = "settings")]
 pub use crate::settings::GoProSetting;
+
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter, WriteType};
 use btleplug::api::{CharPropFlags, ValueNotification};
 use btleplug::platform::{Adapter, Manager, Peripheral};
 use futures::stream::StreamExt;
 use std::error::Error;
+
+#[cfg(feature = "wifi")]
+use wifi_rs::{prelude::*, WiFi};
+
 
 ///Represents a connected GoPro device
 pub struct GoPro {
@@ -115,7 +126,7 @@ impl GoPro {
             return Err("Response from GoPro came from incorrect UUID".into());
         }
         if res.value != setting.response_value_bytes() {
-            return Err("Response from GoPro was incorrect".into());
+            return Err("Setting Response from GoPro was incorrect".into());
         }
         Ok(())
     }
@@ -196,6 +207,7 @@ impl GoPro {
         Ok(query_response.interpret())
     }
 
+
     ///Gets the next notification (response from a command) from the GoPro
     ///
     /// # Returns
@@ -223,6 +235,63 @@ impl GoPro {
     pub async fn disconnect_and_poweroff(self) -> Result<(), Box<dyn Error>> {
         self.send_command(GoProCommand::Sleep.as_ref()).await?;
         self.device.disconnect().await?;
+        Ok(())
+    }
+
+    #[cfg(feature = "wifi")]
+    /// Connects to the GoPro's WiFi access point
+    pub async fn connect_to_ap(&self) -> Result<(), Box<dyn Error>> {
+        //Get the SSID and password from the GoPro
+        let characteristics = self.device.characteristics();
+
+        #[allow(non_snake_case)]
+        let SSID_char = characteristics
+            .iter()
+            .find(|c| c.uuid == GPWifiCharac::SSID.to_uuid())
+            .unwrap();
+
+        let pass_char = characteristics
+            .iter()
+            .find(|c| c.uuid == GPWifiCharac::Password.to_uuid())
+            .unwrap();
+
+        let ssid = self.device
+            .read(
+                &SSID_char,
+            )
+            .await?;
+
+        let pass = self.device
+            .read(
+                &pass_char,
+            )
+            .await?;
+
+        //stringify and print out the SSID and Password
+        let ssid = String::from_utf8(ssid)?;
+        let pass = String::from_utf8(pass)?;
+
+        dbg!(&ssid.as_str());
+        dbg!(&pass.as_str());
+
+        //Turn on the GoPro's WiFi
+        self.send_command(GoProCommand::ApOn.as_ref()).await?;
+
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+        //Connect to the GoPro's WiFi
+        let mut wifi = WiFi::new(None);
+        match wifi.connect(ssid.as_str(), pass.as_str()) {
+            Ok(pass_correct) => {
+                if !pass_correct {
+                    return Err("Password incorrect".into());
+                }
+            }
+            Err(e) => {
+                println!("Error connecting to GoPro AP: {:?}", e);
+            }
+        }
+
         Ok(())
     }
 }
