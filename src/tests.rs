@@ -166,6 +166,58 @@ async fn test_query_interp() {
     gopro.disconnect_and_poweroff().await.unwrap();
 }
 
+#[cfg(feature = "query")]
+#[tokio::test]
+async fn test_query_whether_recording() {
+    let mut central = init(None).await.unwrap();
+    let mut devices = scan(&mut central).await.unwrap();
+    devices.retain(|d| d.contains("GoPro"));
+    assert!(devices.len() > 0, "No GoPro devices found");
+
+    let gopro = connect(devices.first().unwrap().clone(), &mut central)
+        .await
+        .unwrap();
+
+    println!("Connected to GoPro");
+
+    // Test a query that returns whether or not the camera is recording
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying Whether Encoding Active");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![StatusID::EncodingActive]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!("Encoding active ? : {:?}", response);
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Starting Shutter");
+    gopro
+        .send_command(GoProCommand::ShutterStart.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Querying Whether Encoding Active");
+    let response = gopro
+        .interpreted_query(&GoProQuery::GetStatusValue(vec![StatusID::EncodingActive]))
+        .await
+        .unwrap()
+        .unwrap();
+    println!("Encoding active ? : {:?}", response);
+
+    time::sleep(Duration::from_secs(3)).await;
+    println!("Stopping Shutter");
+    gopro
+        .send_command(GoProCommand::ShutterStop.as_ref())
+        .await
+        .unwrap();
+
+    time::sleep(Duration::from_secs(4)).await;
+    println!("Powering off");
+    gopro.disconnect_and_poweroff().await.unwrap();
+}
+
 #[cfg(feature = "settings")]
 #[tokio::test]
 async fn test_some_settings() {
